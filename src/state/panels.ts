@@ -1,0 +1,131 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export type PanelId = "video" | "incidents" | "details";
+
+export interface PanelBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  minimized: boolean;
+  visible: boolean;
+  z: number;
+}
+
+const DEFAULTS: Record<PanelId, PanelBox> = {
+  incidents: { x: 20, y: 74, w: 320, h: 560, minimized: false, visible: true, z: 11 },
+  video: { x: 360, y: 74, w: 760, h: 540, minimized: false, visible: true, z: 12 },
+  details: { x: 360, y: 632, w: 760, h: 250, minimized: false, visible: true, z: 10 },
+};
+
+const TOP_BAR = 60;
+
+function clampBox(b: PanelBox): PanelBox {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const w = Math.min(Math.max(b.w, 260), vw - 16);
+  const h = Math.min(Math.max(b.h, 120), vh - TOP_BAR - 16);
+  return {
+    ...b,
+    w,
+    h,
+    x: Math.min(Math.max(b.x, 8 - w + 120), vw - 60),
+    y: Math.min(Math.max(b.y, TOP_BAR), vh - 44),
+  };
+}
+
+interface PanelsStore {
+  panels: Record<PanelId, PanelBox>;
+  topZ: number;
+  move: (id: PanelId, x: number, y: number) => void;
+  resize: (id: PanelId, w: number, h: number) => void;
+  toggleMin: (id: PanelId) => void;
+  setVisible: (id: PanelId, v: boolean) => void;
+  focus: (id: PanelId) => void;
+  resetLayout: () => void;
+}
+
+export const usePanels = create<PanelsStore>()(
+  persist(
+    (set, get) => ({
+      panels: structuredClone(DEFAULTS),
+      topZ: 12,
+
+      move: (id, x, y) =>
+        set((s) => ({
+          panels: {
+            ...s.panels,
+            [id]: clampBox({ ...s.panels[id], x, y }),
+          },
+        })),
+
+      resize: (id, w, h) =>
+        set((s) => ({
+          panels: {
+            ...s.panels,
+            [id]: clampBox({ ...s.panels[id], w, h }),
+          },
+        })),
+
+      toggleMin: (id) =>
+        set((s) => ({
+          panels: {
+            ...s.panels,
+            [id]: { ...s.panels[id], minimized: !s.panels[id].minimized },
+          },
+        })),
+
+      setVisible: (id, v) => {
+        const topZ = get().topZ + 1;
+        set((s) => ({
+          topZ,
+          panels: {
+            ...s.panels,
+            [id]: {
+              ...s.panels[id],
+              visible: v,
+              minimized: v ? false : s.panels[id].minimized,
+              z: v ? topZ : s.panels[id].z,
+            },
+          },
+        }));
+      },
+
+      focus: (id) => {
+        const cur = get().panels[id];
+        if (cur.z === get().topZ) return;
+        const topZ = get().topZ + 1;
+        set((s) => ({
+          topZ,
+          panels: { ...s.panels, [id]: { ...s.panels[id], z: topZ } },
+        }));
+      },
+
+      resetLayout: () => {
+        try {
+          localStorage.removeItem("td-panels");
+        } catch {
+          /* ignore */
+        }
+        set({ panels: structuredClone(DEFAULTS), topZ: 12 });
+      },
+    }),
+    {
+      name: "td-panels",
+      version: 2,
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<PanelsStore>;
+        const panels = { ...current.panels };
+        for (const id of Object.keys(panels) as PanelId[]) {
+          if (p.panels?.[id]) panels[id] = { ...panels[id], ...p.panels[id] };
+        }
+        return { ...current, ...p, panels };
+      },
+    },
+  ),
+);
+
+if (import.meta.env.DEV) {
+  (window as unknown as { __panels?: typeof usePanels }).__panels = usePanels;
+}
