@@ -36,23 +36,55 @@ export interface VisionEvent {
   data: Record<string, unknown>;
 }
 
+export interface CameraInfo {
+  id: string;
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  /** false = no road polygon drawn yet, occupancy covers the whole frame */
+  calibrated: boolean;
+  /** false = the service cannot reach the source right now */
+  available: boolean;
+  thresholds: { medium: number; high: number };
+  notes: string;
+}
+
 export type TrafficLevel = "bajo" | "medio" | "alto";
 
 export interface TrafficInfo {
   level: TrafficLevel;
+  /** vehicles standing on the road ROI this frame */
   vehicles: number;
   people: number;
+  /** 0..1 fraction of the road area covered by vehicles (smoothed).
+   *  Optional: a vision service older than the occupancy rework omits it. */
+  occupancy?: number;
+  /** px/frame, corrected for perspective and stride */
+  mean_speed?: number;
+  /** 0..1 speed relative to free flow */
+  speed_ratio?: number;
+  /** 0..1 fraction of vehicles below the "stopped" speed */
+  stopped?: number;
+  /** occupancy as a percentage, for quick reading */
   score: number;
 }
 
 export interface MetaMessage {
   type: "meta";
+  /** wire format the service speaks; compared against PROTOCOL_VERSION */
+  protocol?: number;
+  /** the camera this stream belongs to */
+  camera?: CameraInfo;
   fps: number;
   frame_count: number;
   width: number;
   height: number;
   stride: number;
+  /** occupancy thresholds (0..1) the backend uses for medio / alto */
   traffic_thresholds: { medium: number; high: number };
+  /** road polygon in normalized 0..1 coords; null = whole frame.
+   *  Optional for the same reason as the traffic fields above. */
+  road_roi?: Point[] | null;
 }
 
 export interface FrameMessage {

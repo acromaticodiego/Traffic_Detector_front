@@ -22,6 +22,13 @@ export function incidentType(type: string): IncidentTypeInfo {
 /** Confidence at/above which an incident is treated as confirmed. */
 export const ALERT_CONFIDENCE = 0.8;
 
+/** Marcador en el video: no se dibuja por debajo de este valor. */
+export const MARKER_MIN_CONFIDENCE = 0.9;
+
+/** A/desde este valor el marcador se queda fijo; por debajo, caduca 2 s
+ *  después de que sus objetos dejan de detectarse. */
+export const MARKER_STICKY_CONFIDENCE = 0.95;
+
 export interface Severity {
   key: "confirmed" | "pending" | "low";
   label: string;

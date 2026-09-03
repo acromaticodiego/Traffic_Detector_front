@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from "react";
 import { usePanels, type PanelId } from "../state/panels";
-import { IconClose, IconGrip, IconMinus } from "./icons";
+import { IconClose, IconGrip, IconMinus, IconResize } from "./icons";
 
 interface Props {
   id: PanelId;
@@ -23,12 +23,16 @@ export function FloatingPanel({
   const box = usePanels((s) => s.panels[id]);
   const move = usePanels((s) => s.move);
   const resize = usePanels((s) => s.resize);
+  const resizeNE = usePanels((s) => s.resizeNE);
   const toggleMin = usePanels((s) => s.toggleMin);
   const setVisible = usePanels((s) => s.setVisible);
   const focus = usePanels((s) => s.focus);
 
   const drag = useRef<{ dx: number; dy: number } | null>(null);
   const rez = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
+  const rezNE = useRef<
+    { x: number; y: number; w: number; h: number; bottom: number } | null
+  >(null);
 
   if (!box.visible) return null;
 
@@ -69,6 +73,32 @@ export function FloatingPanel({
     rez.current = null;
   };
 
+  const onResizeNEPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    focus(id);
+    rezNE.current = {
+      x: e.clientX,
+      y: e.clientY,
+      w: box.w,
+      h: box.h,
+      bottom: box.y + box.h,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onResizeNEPointerMove = (e: React.PointerEvent) => {
+    const start = rezNE.current;
+    if (!start) return;
+    resizeNE(
+      id,
+      start.w + (e.clientX - start.x),
+      start.h - (e.clientY - start.y),
+      start.bottom,
+    );
+  };
+  const endResizeNE = () => {
+    rezNE.current = null;
+  };
+
   return (
     <section
       className={`fpanel${box.minimized ? " min" : ""}`}
@@ -106,6 +136,19 @@ export function FloatingPanel({
           </button>
         </span>
       </header>
+
+      {!box.minimized && (
+        <div
+          className="fpanel-resize-ne"
+          title="Arrastra para cambiar el tamaño"
+          onPointerDown={onResizeNEPointerDown}
+          onPointerMove={onResizeNEPointerMove}
+          onPointerUp={endResizeNE}
+          onPointerCancel={endResizeNE}
+        >
+          <IconResize width={13} height={13} />
+        </div>
+      )}
 
       {!box.minimized && (
         <div className={`fpanel-body${pad ? "" : " nopad"}`}>{children}</div>

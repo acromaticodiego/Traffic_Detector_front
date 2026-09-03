@@ -1,7 +1,16 @@
-import { MapContainer, Marker, Popup, TileLayer, ZoomControl } from "react-leaflet";
+import { useEffect } from "react";
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  ZoomControl,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { CAMERA } from "../lib/config";
+import { CAMERA_FALLBACK } from "../lib/config";
+import { useCameras } from "../state/cameras";
 import { useStore } from "../state/store";
 
 const camIcon = L.divIcon({
@@ -12,6 +21,18 @@ const camIcon = L.divIcon({
   popupAnchor: [0, -10],
 });
 
+/** `center` on MapContainer only applies on mount, so switching camera needs
+ *  an explicit move. */
+function Recenter({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.flyTo([lat, lng], map.getZoom(), { duration: 0.8 });
+  }, [map, lat, lng]);
+
+  return null;
+}
+
 /**
  * Full-bleed live map that sits BEHIND everything. The floating
  * panels are translucent, so the map colour tints them and shifts
@@ -19,11 +40,19 @@ const camIcon = L.divIcon({
  */
 export function MapBackground() {
   const incidentCount = useStore((s) => s.incidents.length);
+  const camera = useCameras((s) =>
+    s.list.find((c) => c.id === s.selectedId) ?? null,
+  );
+
+  // A camera without coordinates still has to render somewhere.
+  const lat = camera?.lat ?? CAMERA_FALLBACK.lat;
+  const lng = camera?.lng ?? CAMERA_FALLBACK.lng;
+  const name = camera?.name ?? CAMERA_FALLBACK.name;
 
   return (
     <div className="map-bg">
       <MapContainer
-        center={[CAMERA.lat, CAMERA.lng]}
+        center={[lat, lng]}
         zoom={15}
         zoomControl={false}
         attributionControl={false}
@@ -35,9 +64,10 @@ export function MapBackground() {
           maxZoom={19}
         />
         <ZoomControl position="bottomright" />
-        <Marker position={[CAMERA.lat, CAMERA.lng]} icon={camIcon}>
+        <Recenter lat={lat} lng={lng} />
+        <Marker position={[lat, lng]} icon={camIcon}>
           <Popup>
-            <strong>{CAMERA.name}</strong>
+            <strong>{name}</strong>
             <br />
             {incidentCount} incidente(s)
           </Popup>

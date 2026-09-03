@@ -18,4 +18,9 @@ export {
   ListTree as IconListTree,
   Radar as IconRadar,
   Activity as IconActivity,
+  ScrollText as IconLogs,
+  ChevronRight as IconChevronRight,
+  Trash2 as IconTrash,
+  MoveDiagonal2 as IconResize,
+  Cctv as IconCamera,
 } from "lucide-react";

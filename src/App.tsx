@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useInferenceSocket } from "./hooks/useInferenceSocket";
 import { StatusBar } from "./components/StatusBar";
 import { VideoCanvas } from "./components/VideoCanvas";
@@ -6,10 +7,18 @@ import { IncidentDetails } from "./components/IncidentDetails";
 import { MapBackground } from "./components/MapBackground";
 import { FloatingPanel } from "./components/FloatingPanel";
 import { Dock } from "./components/Dock";
+import { LogDrawer } from "./components/LogDrawer";
 import { IconAlert, IconEye, IconListTree } from "./components/icons";
 import { useStore } from "./state/store";
+import { useCameras } from "./state/cameras";
 
 export default function App() {
+  // The socket stays idle until this resolves and picks a camera.
+  const loadCameras = useCameras((s) => s.load);
+  useEffect(() => {
+    void loadCameras();
+  }, [loadCameras]);
+
   const { connect } = useInferenceSocket();
   const incidentCount = useStore((s) => s.incidents.length);
 
@@ -50,6 +59,7 @@ export default function App() {
       </FloatingPanel>
 
       <Dock />
+      <LogDrawer />
     </div>
   );
 }
