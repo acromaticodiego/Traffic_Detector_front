@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { IS_NGROK, NGROK_HEADERS, VIDEO_URL } from "../lib/config";
+import { IS_NGROK, NGROK_HEADERS, videoUrl } from "../lib/config";
+import { useCameras } from "../state/cameras";
 
 /**
  * Resolves a URL usable as <video src>.
@@ -10,21 +11,32 @@ import { IS_NGROK, NGROK_HEADERS, VIDEO_URL } from "../lib/config";
  *   (Trade-off: the whole video is held in memory. Fine for the demo clip.)
  */
 // changes on every page load -> defeats any stale <video> cache after a swap
-const CACHE_BUST = `?v=${Date.now()}`;
+const CACHE_BUST = Date.now();
 
 export function useVideoSrc(): { src: string | null; error: string | null } {
-  const [src, setSrc] = useState<string | null>(
-    IS_NGROK ? null : VIDEO_URL + CACHE_BUST,
-  );
+  const camera = useCameras((s) => s.selectedId);
+
+  const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!IS_NGROK) return;
+    // Nothing to play until the registry says which camera we are watching.
+    if (!camera) {
+      setSrc(null);
+      return;
+    }
+
+    setError(null);
+
+    if (!IS_NGROK) {
+      setSrc(videoUrl(camera) + `&v=${CACHE_BUST}`);
+      return;
+    }
 
     let revoked: string | null = null;
     let cancelled = false;
 
-    fetch(VIDEO_URL + CACHE_BUST, { headers: NGROK_HEADERS })
+    fetch(videoUrl(camera) + `&v=${CACHE_BUST}`, { headers: NGROK_HEADERS })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.blob();
@@ -41,7 +53,7 @@ export function useVideoSrc(): { src: string | null; error: string | null } {
       cancelled = true;
       if (revoked) URL.revokeObjectURL(revoked);
     };
-  }, []);
+  }, [camera]);
 
   return { src, error };
 }

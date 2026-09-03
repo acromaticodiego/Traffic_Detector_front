@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { drawOverlay } from "../lib/overlay";
 import type { IncidentMarker } from "../lib/overlay";
-import { incidentType, severity } from "../lib/incidents";
+import {
+  incidentType,
+  severity,
+  MARKER_MIN_CONFIDENCE,
+  MARKER_STICKY_CONFIDENCE,
+} from "../lib/incidents";
 import { useVideoSrc } from "../hooks/useVideoSrc";
 import { useStore } from "../state/store";
+import { log } from "../state/logs";
 import type { TrafficInfo } from "../lib/types";
 import { TrafficBadge } from "./TrafficBadge";
 import { IconPause, IconPlay } from "./icons";
@@ -47,6 +53,7 @@ export function VideoCanvas() {
 
   const [showTrails, setShowTrails] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
+  const [showRoi, setShowRoi] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [curFrame, setCurFrame] = useState(0);
   const [traffic, setTraffic] = useState<TrafficInfo | null>(null);
@@ -58,6 +65,9 @@ export function VideoCanvas() {
   const syncRef = useRef(true);
   const autoPausedRef = useRef(false);
   const userPausedRef = useRef(false);
+  // Set right before a play()/pause() we issue ourselves, so the media event
+  // handlers can tell a sync stall apart from the user hitting the button.
+  const programmaticRef = useRef(false);
   syncRef.current = sync;
 
   const selectedIncident = useStore((s) =>
@@ -105,6 +115,7 @@ export function VideoCanvas() {
           !autoPausedRef.current &&
           video.currentTime >= frontierT - SAFE
         ) {
+          programmaticRef.current = true;
           video.pause();
           autoPausedRef.current = true;
           setWaiting(true);
@@ -113,6 +124,7 @@ export function VideoCanvas() {
           !userPausedRef.current &&
           video.currentTime < frontierT - SAFE - 0.4
         ) {
+          programmaticRef.current = true;
           void video.play();
           autoPausedRef.current = false;
           setWaiting(false);
@@ -120,7 +132,10 @@ export function VideoCanvas() {
       } else if (autoPausedRef.current) {
         autoPausedRef.current = false;
         setWaiting(false);
-        if (!userPausedRef.current) void video.play();
+        if (!userPausedRef.current) {
+          programmaticRef.current = true;
+          void video.play();
+        }
       }
 
       // 3. draw the result for the frame currently shown
@@ -130,8 +145,19 @@ export function VideoCanvas() {
       const scale = canvas.width / (rect.sourceW || m.width);
 
       const selId = state.selectedIncidentId;
+      const grace = Math.round(2 * m.fps); // 2 s de gracia
+      const lead = Math.round(0.3 * m.fps);
       const markers: IncidentMarker[] = state.incidents
-        .filter((inc) => inc.bbox)
+        .filter((inc) => {
+          if (!inc.bbox) return false;
+          // < 90 % -> nunca se dibuja el marcador
+          if (inc.confidence < MARKER_MIN_CONFIDENCE) return false;
+          if (fid < inc.frame_id - lead) return false;
+          // >= 95 % -> fijo; entre 90 y 95 % -> caduca 2 s tras perder los objetos
+          if (inc.confidence >= MARKER_STICKY_CONFIDENCE) return true;
+          const last = state.incidentActivity.get(inc.id) ?? inc.frame_id;
+          return fid <= last + grace;
+        })
         .map((inc) => ({
           id: inc.id,
           bbox: inc.bbox!,
@@ -146,11 +172,17 @@ export function VideoCanvas() {
         showLabels,
         highlight,
         incidents: markers,
+        roadRoi: showRoi ? m.road_roi : null,
       });
 
+      // Occupancy drifts every frame; only re-render when something the
+      // badge actually prints changes.
       const tinfo = frame?.traffic ?? null;
       setTraffic((prev) =>
-        prev?.level === tinfo?.level && prev?.vehicles === tinfo?.vehicles
+        prev?.level === tinfo?.level &&
+        prev?.vehicles === tinfo?.vehicles &&
+        Math.round((prev?.occupancy ?? 0) * 100) ===
+          Math.round((tinfo?.occupancy ?? 0) * 100)
           ? prev
           : tinfo,
       );
@@ -158,7 +190,7 @@ export function VideoCanvas() {
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [showTrails, showLabels, highlight]);
+  }, [showTrails, showLabels, showRoi, highlight]);
 
   // Seek when an incident is selected.
   useEffect(() => {
@@ -194,13 +226,37 @@ export function VideoCanvas() {
             src={src}
             controls
             playsInline
-            onPlay={() => {
+            onPlay={(e) => {
               setPlaying(true);
               if (!autoPausedRef.current) userPausedRef.current = false;
+              if (programmaticRef.current) programmaticRef.current = false;
+              else
+                log({
+                  kind: "video",
+                  level: "ok",
+                  t: e.currentTarget.currentTime,
+                  text: "Reproducción iniciada",
+                });
             }}
-            onPause={() => {
+            onPause={(e) => {
               setPlaying(false);
               if (!autoPausedRef.current) userPausedRef.current = true;
+              if (programmaticRef.current) programmaticRef.current = false;
+              else if (!e.currentTarget.ended)
+                log({
+                  kind: "video",
+                  level: "info",
+                  t: e.currentTarget.currentTime,
+                  text: "Video pausado",
+                });
+            }}
+            onEnded={(e) => {
+              log({
+                kind: "video",
+                level: "info",
+                t: e.currentTarget.currentTime,
+                text: "Video finalizado",
+              });
             }}
           />
         ) : (
@@ -241,6 +297,15 @@ export function VideoCanvas() {
             onChange={(e) => setShowTrails(e.target.checked)}
           />
           Trayectorias
+        </label>
+        <label title="Área de calzada sobre la que se mide la ocupación (VISION_ROAD_ROI)">
+          <input
+            type="checkbox"
+            checked={showRoi}
+            onChange={(e) => setShowRoi(e.target.checked)}
+            disabled={!meta?.road_roi}
+          />
+          Vía
         </label>
         <label title="El video no adelanta a la inferencia (cajas siempre sincronizadas)">
           <input

@@ -1,5 +1,6 @@
 import { useStore } from "../state/store";
 import { IconEye, IconRefresh } from "./icons";
+import { CameraPicker } from "./CameraPicker";
 
 const STATUS_LABEL: Record<string, string> = {
   idle: "Inactivo",
@@ -24,6 +25,8 @@ export function StatusBar({ onReconnect }: { onReconnect: () => void }) {
         </span>
         Traffic Intelligence
       </span>
+
+      <CameraPicker />
 
       <span className={`live ${status}`}>
         <span className="live-dot" />

@@ -330,6 +330,10 @@ button.ghost {
   gap: 4px;
   flex: none;
 }
+/* Only an expanded panel shows the grip, so only it reserves the corner. */
+.fpanel:not(.min) .fpanel-actions {
+  margin-right: 20px;
+}
 .fpanel-actions button {
   padding: 4px;
   border-radius: 7px;
@@ -353,6 +357,33 @@ button.ghost {
 }
 .fpanel-body.nopad {
   padding: 0;
+}
+
+/* Top-right resize grip. Drags the top and right edges at once, keeping the
+   bottom edge anchored — handy for the video panel, whose bottom-right corner
+   is often behind another panel. */
+.fpanel-resize-ne {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--text-mute);
+  cursor: nesw-resize;
+  touch-action: none;
+  border-top-right-radius: var(--r);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.fpanel-resize-ne:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+}
+.fpanel-resize-ne svg {
+  /* MoveDiagonal2 points NE/SW already; nudge it into the corner optically */
+  transform: translate(1px, -1px);
 }
 
 .fpanel-resize {
@@ -568,6 +599,14 @@ button.ghost {
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+/* por qué el nivel es ese: ocupación alta pero fluyendo != trancón */
+.traffic-reason {
+  padding-left: 9px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  font-style: italic;
+}
 
 .sync-wait {
   position: absolute;
@@ -661,4 +700,295 @@ button.ghost {
   line-height: 1.55;
   color: var(--text-dim);
   margin: 0;
+}
+
+/* Shown by ErrorBoundary when a render throws, instead of a black page. */
+.crash {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  text-align: center;
+  background: #0b0f14;
+  color: #e5e7eb;
+}
+.crash h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.crash-msg {
+  margin: 0;
+  max-width: 60ch;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #f87171;
+  overflow-wrap: anywhere;
+}
+.crash-hint {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ── Registro de actividad (drawer derecho) ─────────────────────────────── */
+
+.log-handle {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 41;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 9px;
+  writing-mode: vertical-rl;
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  color: var(--text-dim);
+  border: 1px solid var(--hairline);
+  border-right: none;
+  border-radius: var(--r-sm) 0 0 var(--r-sm);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.22s ease, color 0.15s ease;
+}
+.log-handle:hover {
+  color: var(--text);
+}
+.log-handle svg {
+  transform: rotate(90deg);
+}
+.log-handle.open {
+  /* ride along with the open drawer instead of hiding under it */
+  transform: translateY(-50%) translateX(-340px);
+}
+.log-handle-text {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.log-badge {
+  writing-mode: horizontal-tb;
+  min-width: 17px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  color: #0a0e13;
+  background: var(--brand);
+  border-radius: 9px;
+}
+
+.log-drawer {
+  position: fixed;
+  top: 60px;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  border-left: 1px solid var(--hairline);
+  box-shadow: var(--shadow);
+  transform: translateX(100%);
+  /* visibility (delayed to the end of the slide) keeps the closed drawer out
+     of the tab order and the accessibility tree, which transform alone
+     does not do. */
+  visibility: hidden;
+  transition: transform 0.22s ease, visibility 0s linear 0.22s;
+}
+.log-drawer.open {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 0.22s ease, visibility 0s;
+}
+
+.log-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 12px;
+  color: var(--text);
+}
+.log-head .spacer {
+  flex: 1;
+}
+.log-head button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--text-mute);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.log-head button:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-3);
+}
+.log-head button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.log-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+.log-chip {
+  padding: 3px 9px;
+  font-size: 11px;
+  color: var(--text-mute);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.log-chip:hover {
+  color: var(--text-dim);
+}
+.log-chip.on {
+  color: var(--text);
+  background: var(--brand-soft);
+  border-color: transparent;
+}
+
+.log-list {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+}
+.log-empty {
+  flex: 1;
+  margin: 0;
+  padding: 22px 14px;
+  font-size: 12px;
+  color: var(--text-mute);
+}
+
+.log-row {
+  display: flex;
+  gap: 9px;
+  padding: 7px 12px 7px 10px;
+  border-left: 2px solid transparent;
+  font-size: 12px;
+}
+.log-row + .log-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+.log-row.ok {
+  border-left-color: var(--good);
+}
+.log-row.warn {
+  border-left-color: var(--warn);
+}
+.log-row.alert {
+  border-left-color: var(--bad);
+  background: rgba(248, 113, 113, 0.06);
+}
+
+.log-time {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-mute);
+  padding-top: 1px;
+}
+.log-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.log-text {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.log-row.alert .log-text {
+  font-weight: 600;
+}
+/* video position, so a line can be matched against the player */
+.log-at {
+  margin-left: 6px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  background: var(--surface-3);
+  border-radius: 4px;
+}
+.log-detail {
+  font-size: 11px;
+  color: var(--text-mute);
+  overflow-wrap: anywhere;
+}
+
+/* ── Selector de cámara (barra superior) ────────────────────────────────── */
+
+.cam-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px 5px 9px;
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.cam-picker.loading,
+.cam-picker.error {
+  color: var(--text-mute);
+}
+.cam-picker.error {
+  color: var(--bad);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+.cam-picker select {
+  appearance: none;
+  padding: 0 16px 0 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent
+    url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23a7b3c0' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right center;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+.cam-picker select option {
+  /* the popup is drawn by the OS, so it needs its own colours */
+  color: var(--text);
+  background: var(--surface);
+}
+.cam-warn {
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #3a3212;
+  background: var(--warn);
+  border-radius: 999px;
 }

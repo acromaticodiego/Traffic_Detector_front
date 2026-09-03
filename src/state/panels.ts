@@ -40,6 +40,7 @@ interface PanelsStore {
   topZ: number;
   move: (id: PanelId, x: number, y: number) => void;
   resize: (id: PanelId, w: number, h: number) => void;
+  resizeNE: (id: PanelId, w: number, h: number, bottom: number) => void;
   toggleMin: (id: PanelId) => void;
   setVisible: (id: PanelId, v: boolean) => void;
   focus: (id: PanelId) => void;
@@ -67,6 +68,26 @@ export const usePanels = create<PanelsStore>()(
             [id]: clampBox({ ...s.panels[id], w, h }),
           },
         })),
+
+      // Resize from the top-right corner. Unlike the bottom-right grip, the
+      // panel's bottom edge has to stay where it is, so the height and the y
+      // position move together: growing upwards is a smaller y, not a bigger
+      // box anchored at the top.
+      resizeNE: (id, w, h, bottom) =>
+        set((s) => {
+          const maxH = window.innerHeight - TOP_BAR - 16;
+          const clampedH = Math.min(Math.max(h, 120), maxH);
+          // If the top runs into the bar, the corner stops there and the
+          // height follows, instead of the whole panel sliding down.
+          const y = Math.max(bottom - clampedH, TOP_BAR);
+
+          return {
+            panels: {
+              ...s.panels,
+              [id]: clampBox({ ...s.panels[id], w, h: bottom - y, y }),
+            },
+          };
+        }),
 
       toggleMin: (id) =>
         set((s) => ({

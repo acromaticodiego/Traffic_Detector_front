@@ -57,6 +57,18 @@ demo). Recuerda fijar `VISION_CORS_ORIGINS` en el backend al origen del frontend
 - **Dock abajo-izquierda** (`Dock`): mostrar/guardar cada panel y "Restablecer"
   posiciones. Las posiciones se guardan en `localStorage`.
 
+### Badge de tráfico
+
+El nivel lo calcula el backend por **ocupación de la calzada + velocidad**, no
+contando vehículos (ver `../traffic_detector/services/vision_service/README.md`).
+El badge muestra el porcentaje de vía ocupada y por qué salió ese nivel
+("denso, pero fluye" ≠ "vía llena y detenida").
+
+La casilla **Vía** del panel de cámara dibuja el polígono `VISION_ROAD_ROI`
+sobre el video; sirve para ver si la ROI quedó bien recortada. Aparece
+deshabilitada cuando el backend no tiene ROI configurada (mide el frame
+completo).
+
 ## Estructura
 
 ```

@@ -16,12 +16,35 @@ export const NGROK_HEADERS: Record<string, string> = IS_NGROK
   ? { "ngrok-skip-browser-warning": "true" }
   : {};
 
-export const VIDEO_URL = `${API_BASE}/api/video`;
-export const VIDEO_META_URL = `${API_BASE}/api/video/meta`;
-export const INFERENCE_WS_URL = `${WS_BASE}/ws/inference?stride=${STRIDE}`;
+/**
+ * Wire format this build expects. The service reports its own in the `meta`
+ * message; a mismatch means one of the two is stale, which is otherwise
+ * invisible — both sides keep talking and the payload just misses fields.
+ * Keep in sync with services/vision_service/app/api/protocol.py.
+ */
+export const PROTOCOL_VERSION = 2;
 
-export const CAMERA = {
+export const CAMERAS_URL = `${API_BASE}/api/cameras`;
+
+/** Every stream URL is camera-scoped; omitting the id lets the service pick
+ *  the first camera in its registry. */
+function withCamera(base: string, camera?: string | null): string {
+  return camera ? `${base}${base.includes("?") ? "&" : "?"}camera=${encodeURIComponent(camera)}` : base;
+}
+
+export const videoUrl = (camera?: string | null) =>
+  withCamera(`${API_BASE}/api/video`, camera);
+
+export const videoMetaUrl = (camera?: string | null) =>
+  withCamera(`${API_BASE}/api/video/meta`, camera);
+
+export const inferenceWsUrl = (camera?: string | null) =>
+  withCamera(`${WS_BASE}/ws/inference?stride=${STRIDE}`, camera);
+
+/** Map fallback for when the service reports no coordinates for a camera.
+ *  Real positions now come from cameras.yaml, not from the frontend env. */
+export const CAMERA_FALLBACK = {
   lat: Number(import.meta.env.VITE_CAMERA_LAT ?? "4.60971"),
   lng: Number(import.meta.env.VITE_CAMERA_LNG ?? "-74.08175"),
-  name: import.meta.env.VITE_CAMERA_NAME ?? "Cámara 1",
+  name: import.meta.env.VITE_CAMERA_NAME ?? "Cámara",
 };

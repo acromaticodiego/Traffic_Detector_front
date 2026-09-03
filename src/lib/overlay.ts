@@ -1,4 +1,4 @@
-import type { FrameResult, Track } from "./types";
+import type { FrameResult, Point, Track } from "./types";
 
 /** Class colors mirror scripts/test_vision_engine.py (BGR -> CSS RGB). */
 const CLASS_COLORS: Record<string, string> = {
@@ -34,6 +34,8 @@ export interface DrawOptions {
   highlight?: Set<number>;
   /** persistent incident markers (shown regardless of the current frame) */
   incidents?: IncidentMarker[];
+  /** road polygon in normalized 0..1 coords — the area traffic level measures */
+  roadRoi?: Point[] | null;
 }
 
 export function drawOverlay(
@@ -45,6 +47,9 @@ export function drawOverlay(
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const s = opts.scale;
+
+  // under everything else: it's context, not a detection
+  if (opts.roadRoi?.length) drawRoadRoi(ctx, opts.roadRoi);
 
   if (frame) {
     if (opts.showTrails) {
@@ -59,6 +64,31 @@ export function drawOverlay(
   if (opts.incidents) {
     for (const marker of opts.incidents) drawIncidentMarker(ctx, marker, s);
   }
+}
+
+/** The ROI is normalized (0..1), so it maps onto the canvas box directly —
+ *  no source-pixel scaling needed. */
+function drawRoadRoi(ctx: CanvasRenderingContext2D, roi: Point[]): void {
+  const { width, height } = ctx.canvas;
+
+  ctx.save();
+  ctx.beginPath();
+  roi.forEach(([x, y], i) => {
+    const px = x * width;
+    const py = y * height;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  });
+  ctx.closePath();
+
+  ctx.fillStyle = "rgba(56, 189, 248, 0.10)";
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(56, 189, 248, 0.75)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 6]);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawIncidentMarker(

@@ -1,4 +1,11 @@
 import { create } from "zustand";
+import {
+  ALERT_CONFIDENCE,
+  incidentType,
+  severity,
+  MARKER_STICKY_CONFIDENCE,
+} from "../lib/incidents";
+import { log } from "./logs";
 import type {
   FrameResult,
   Incident,
@@ -25,10 +32,14 @@ interface AppState {
   incidents: StoredIncident[];
   selectedIncidentId: string | null;
 
+  /** incident id -> last frame_id where one of its tracks was present */
+  incidentActivity: Map<string, number>;
+
   setStatus: (s: SocketStatus, error?: string | null) => void;
   setMeta: (m: MetaMessage) => void;
   addFrame: (f: FrameResult) => void;
   addIncident: (i: Incident, frameId: number) => void;
+  noteTrackActivity: (frameId: number, trackIds: number[]) => void;
   selectIncident: (id: string | null) => void;
   reset: () => void;
 
@@ -62,6 +73,7 @@ export const useStore = create<AppState>((set, get) => ({
   processed: 0,
   incidents: [],
   selectedIncidentId: null,
+  incidentActivity: new Map(),
 
   setStatus: (status, error = null) => set({ status, error }),
 
@@ -103,9 +115,40 @@ export const useStore = create<AppState>((set, get) => ({
         return { incidents: next };
       }
 
+      // Only first sightings reach here; the upsert above swallows repeats,
+      // so the log gets one line per real incident instead of one per frame.
+      const info = incidentType(i.incident_type);
+      log({
+        kind: "incidente",
+        level:
+          i.confidence >= MARKER_STICKY_CONFIDENCE
+            ? "alert"
+            : i.confidence >= ALERT_CONFIDENCE
+              ? "warn"
+              : "info",
+        t: i.t,
+        text: `${info.label} · ${severity(i.confidence).label}`,
+        detail:
+          `confianza ${(i.confidence * 100).toFixed(0)} % · ` +
+          `${i.track_ids.length === 1 ? "objeto" : "objetos"} ` +
+          i.track_ids.map((n) => `#${n}`).join(", "),
+      });
+
       return {
         incidents: [{ ...i, id, frame_id: frameId }, ...state.incidents],
       };
+    }),
+
+  noteTrackActivity: (frameId, trackIds) =>
+    set((state) => {
+      if (trackIds.length === 0 || state.incidents.length === 0) return state;
+      const present = new Set(trackIds);
+      for (const inc of state.incidents) {
+        if (inc.track_ids.some((id) => present.has(id))) {
+          state.incidentActivity.set(inc.id, frameId);
+        }
+      }
+      return { incidentActivity: state.incidentActivity };
     }),
 
   selectIncident: (selectedIncidentId) => set({ selectedIncidentId }),
@@ -121,6 +164,7 @@ export const useStore = create<AppState>((set, get) => ({
       processed: 0,
       incidents: [],
       selectedIncidentId: null,
+      incidentActivity: new Map(),
     }),
 
   frameAt: (frameId) => {
