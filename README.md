@@ -26,6 +26,23 @@ npm run dev                     # abre la URL que imprime Vite (normalmente :517
 
 Otros scripts: `npm run build` (`tsc -b && vite build`) · `npm run preview`.
 
+## Calidad (lint y tests)
+
+```bash
+npm run lint        # ESLint (TypeScript + reglas de hooks de React)
+npm run typecheck   # tsc -b
+npm test            # Vitest, una pasada
+npm run test:watch  # Vitest en modo watch mientras desarrollas
+```
+
+Los tests cubren la lógica que se rompe en silencio: los umbrales de severidad
+de incidentes (`lib/incidents`), la búsqueda del frame sincronizado y el
+*upsert* de incidentes (`state/store`), y el recorte de posición y tamaño de
+los paneles flotantes (`state/panels`).
+
+`.github/workflows/ci.yml` corre esos cuatro pasos —lint, tipos, tests y
+build— en cada push a `main` y en cada pull request.
+
 ---
 
 ## Qué hace
