@@ -1,6 +1,6 @@
 import { useStore } from "../state/store";
 import { incidentType, severity } from "../lib/incidents";
-import { IconAlert } from "./icons";
+import { IconSiren } from "./icons";
 
 function fmtTime(t: number | null): string {
   if (t == null) return "—";
@@ -17,7 +17,7 @@ export function IncidentList() {
   if (incidents.length === 0) {
     return (
       <div className="empty">
-        <IconAlert width={22} height={22} />
+        <IconSiren width={22} height={22} />
         <span>Sin incidentes detectados todavía</span>
       </div>
     );
@@ -35,7 +35,7 @@ export function IncidentList() {
             style={{ ["--sev" as string]: sev.color }}
             onClick={() => select(inc.id === selectedId ? null : inc.id)}
           >
-            <IconAlert className="incident-ico" width={16} height={16} />
+            <IconSiren className="incident-ico" width={16} height={16} />
             <div className="incident-row">
               <strong>{incidentType(inc.incident_type).label}</strong>
               <span className="meta">

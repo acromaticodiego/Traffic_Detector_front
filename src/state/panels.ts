@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type PanelId = "video" | "incidents" | "details";
+export type PanelId = "video" | "incidents" | "details" | "review";
 
 export interface PanelBox {
   x: number;
@@ -17,6 +17,9 @@ const DEFAULTS: Record<PanelId, PanelBox> = {
   incidents: { x: 20, y: 74, w: 320, h: 560, minimized: false, visible: true, z: 11 },
   video: { x: 360, y: 74, w: 760, h: 540, minimized: false, visible: true, z: 12 },
   details: { x: 360, y: 632, w: 760, h: 250, minimized: false, visible: true, z: 10 },
+  // Arranca oculto: es una herramienta de turno de revisión, no algo que el
+  // operador que solo mira el vivo necesite tapándole el video.
+  review: { x: 1140, y: 74, w: 460, h: 700, minimized: false, visible: false, z: 13 },
 };
 
 const TOP_BAR = 60;
@@ -99,18 +102,28 @@ export const usePanels = create<PanelsStore>()(
 
       setVisible: (id, v) => {
         const topZ = get().topZ + 1;
-        set((s) => ({
-          topZ,
-          panels: {
-            ...s.panels,
-            [id]: {
-              ...s.panels[id],
-              visible: v,
-              minimized: v ? false : s.panels[id].minimized,
-              z: v ? topZ : s.panels[id].z,
+        set((s) => {
+          const next = {
+            ...s.panels[id],
+            visible: v,
+            minimized: v ? false : s.panels[id].minimized,
+            z: v ? topZ : s.panels[id].z,
+          };
+
+          return {
+            topZ,
+            panels: {
+              // Al mostrarlo se ajusta a la ventana. Las posiciones por
+              // defecto se pensaron en una pantalla ancha, y las guardadas
+              // vienen de la que tuviera el usuario la última vez: sin esto,
+              // abrir un panel en un portátil —o después de cambiar de
+              // monitor— lo deja medio fuera y con la barra de título
+              // inalcanzable, o sea sin forma de arrastrarlo de vuelta.
+              ...s.panels,
+              [id]: v ? clampBox(next) : next,
             },
-          },
-        }));
+          };
+        });
       },
 
       focus: (id) => {

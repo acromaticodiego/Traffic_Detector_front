@@ -70,6 +70,27 @@ describe("foco y visibilidad", () => {
     expect(panels.details.z).toBe(topZ);
   });
 
+  it("un panel guardado fuera de pantalla vuelve a ser alcanzable al abrirlo", () => {
+    // Pasa al abrir en un portátil un layout guardado en un monitor ancho, y
+    // al desconectar una pantalla externa. Sin ajustar al mostrarlo, el panel
+    // aparece con su barra de título fuera del viewport: no hay de dónde
+    // agarrarlo para traerlo de vuelta.
+    usePanels.getState().setVisible("review", false);
+    usePanels.setState((s) => ({
+      panels: {
+        ...s.panels,
+        review: { ...s.panels.review, x: window.innerWidth + 4000 },
+      },
+    }));
+
+    usePanels.getState().setVisible("review", true);
+
+    const { x, w } = usePanels.getState().panels.review;
+
+    expect(x).toBeLessThanOrEqual(window.innerWidth - 60);
+    expect(x + w).toBeGreaterThan(0);
+  });
+
   it("mostrar un panel oculto lo desminimiza", () => {
     const { toggleMin, setVisible } = usePanels.getState();
     toggleMin("incidents");

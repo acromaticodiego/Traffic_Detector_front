@@ -1,17 +1,22 @@
 import { usePanels, type PanelId } from "../state/panels";
-import { IconAlert, IconEye, IconLayout, IconListTree } from "./icons";
+import { IconCone, IconEye, IconLayout, IconReview, IconSiren } from "./icons";
 
 const ITEMS: { id: PanelId; label: string; icon: JSX.Element }[] = [
   { id: "video", label: "Cámara", icon: <IconEye width={15} height={15} /> },
   {
     id: "incidents",
     label: "Incidentes",
-    icon: <IconListTree width={15} height={15} />,
+    icon: <IconSiren width={15} height={15} />,
   },
   {
     id: "details",
     label: "Detalle",
-    icon: <IconAlert width={15} height={15} />,
+    icon: <IconCone width={15} height={15} />,
+  },
+  {
+    id: "review",
+    label: "Revisión",
+    icon: <IconReview width={15} height={15} />,
   },
 ];
 
