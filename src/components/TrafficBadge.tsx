@@ -1,10 +1,13 @@
+import { MUSTARD, STEEL, TERRACOTTA_BRIGHT } from "../lib/palette";
 import type { TrafficInfo, TrafficLevel } from "../lib/types";
 
 const STYLE: Record<TrafficLevel, { label: string; color: string; dot: string }> =
   {
-    bajo: { label: "Tráfico bajo", color: "#16351f", dot: "#22c55e" },
-    medio: { label: "Tráfico medio", color: "#3a3212", dot: "#eab308" },
-    alto: { label: "Tráfico alto", color: "#3a1717", dot: "#ef4444" },
+    // La vía fluyendo es azul, no verde: el estado normal no compite con la
+    // alarma, y la escala completa se queda dentro de la paleta.
+    bajo: { label: "Tráfico bajo", color: "#0E2E44", dot: STEEL },
+    medio: { label: "Tráfico medio", color: "#3A2E12", dot: MUSTARD },
+    alto: { label: "Tráfico alto", color: "#3A1C12", dot: TERRACOTTA_BRIGHT },
   };
 
 /** Why the backend picked this level, in one line. */

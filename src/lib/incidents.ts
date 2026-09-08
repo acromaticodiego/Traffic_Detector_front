@@ -1,18 +1,20 @@
 /** Display metadata for incident types emitted by the vision service. */
 
+import { MUSTARD, STEEL, TERRACOTTA_BRIGHT } from "./palette";
+
 export interface IncidentTypeInfo {
   label: string;
   color: string;
 }
 
 const TYPES: Record<string, IncidentTypeInfo> = {
-  possible_collision: { label: "Posible colisión", color: "#f87171" },
-  vehiculo_detenido: { label: "Vehículo detenido", color: "#fbbf24" },
+  possible_collision: { label: "Posible colisión", color: TERRACOTTA_BRIGHT },
+  vehiculo_detenido: { label: "Vehículo detenido", color: MUSTARD },
 };
 
 const FALLBACK: IncidentTypeInfo = {
   label: "Incidente",
-  color: "#fbbf24",
+  color: MUSTARD,
 };
 
 export function incidentType(type: string): IncidentTypeInfo {
@@ -38,10 +40,12 @@ export interface Severity {
 // hex (not CSS vars) so the canvas overlay can use these directly
 export function severity(confidence: number): Severity {
   if (confidence >= ALERT_CONFIDENCE)
-    return { key: "confirmed", label: "Confirmado", color: "#f87171" };
+    return { key: "confirmed", label: "Confirmado", color: TERRACOTTA_BRIGHT };
   if (confidence >= 0.5)
-    return { key: "pending", label: "Por confirmar", color: "#fbbf24" };
-  return { key: "low", label: "Baja confianza", color: "#34d399" };
+    return { key: "pending", label: "Por confirmar", color: MUSTARD };
+  // Acero y no verde: la ausencia de color cálido ya dice "esto no urge",
+  // y un verde saturado abriría una cuarta familia de color para repetirlo.
+  return { key: "low", label: "Baja confianza", color: STEEL };
 }
 
 /** Severity accent from confidence, used for the list bar / dot / marker. */
