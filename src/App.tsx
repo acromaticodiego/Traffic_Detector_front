@@ -4,11 +4,12 @@ import { StatusBar } from "./components/StatusBar";
 import { VideoCanvas } from "./components/VideoCanvas";
 import { IncidentList } from "./components/IncidentList";
 import { IncidentDetails } from "./components/IncidentDetails";
+import { ReviewPanel } from "./components/ReviewPanel";
 import { MapBackground } from "./components/MapBackground";
 import { FloatingPanel } from "./components/FloatingPanel";
 import { Dock } from "./components/Dock";
 import { LogDrawer } from "./components/LogDrawer";
-import { IconAlert, IconEye, IconListTree } from "./components/icons";
+import { IconCone, IconEye, IconReview, IconSiren } from "./components/icons";
 import { useStore } from "./state/store";
 import { useCameras } from "./state/cameras";
 
@@ -31,7 +32,7 @@ export default function App() {
       <FloatingPanel
         id="incidents"
         title="Incidentes"
-        icon={<IconListTree width={14} height={14} />}
+        icon={<IconSiren width={14} height={14} />}
         headerRight={
           incidentCount > 0 ? (
             <span className="count-chip">{incidentCount}</span>
@@ -53,9 +54,17 @@ export default function App() {
       <FloatingPanel
         id="details"
         title="Detalle del incidente"
-        icon={<IconAlert width={14} height={14} />}
+        icon={<IconCone width={14} height={14} />}
       >
         <IncidentDetails />
+      </FloatingPanel>
+
+      <FloatingPanel
+        id="review"
+        title="Gestor de incidentes"
+        icon={<IconReview width={14} height={14} />}
+      >
+        <ReviewPanel />
       </FloatingPanel>
 
       <Dock />

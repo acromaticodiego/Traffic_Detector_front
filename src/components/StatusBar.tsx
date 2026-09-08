@@ -1,5 +1,5 @@
 import { useStore } from "../state/store";
-import { IconEye, IconRefresh } from "./icons";
+import { IconRefresh, IconTower } from "./icons";
 import { CameraPicker } from "./CameraPicker";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -21,7 +21,7 @@ export function StatusBar({ onReconnect }: { onReconnect: () => void }) {
     <header className="topbar">
       <span className="brand">
         <span className="brand-mark">
-          <IconEye width={16} height={16} />
+          <IconTower width={16} height={16} />
         </span>
         Traffic Intelligence
       </span>

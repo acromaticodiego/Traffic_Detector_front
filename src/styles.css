@@ -1,30 +1,59 @@
+/* ============================================================
+   Paleta: azul marino, terracota y mostaza.
+
+   Tres familias y cada una significa algo. El marino ocupa casi toda la
+   pantalla —mapa, paneles, vehículos rastreados— así que cualquier cosa
+   cálida salta sola sin necesidad de parpadeos. La mostaza es precaución
+   (usuarios vulnerables, incidentes por confirmar) y la terracota es
+   alarma, y nada más que alarma: si se usara también para decorar dejaría
+   de leerse como urgencia.
+
+   Los mismos valores están en src/lib/palette.ts, que es lo que usa el
+   canvas del overlay. Si cambia uno, cambian los dos.
+   ============================================================ */
+
 :root {
-  --bg: #0a0e13;
-  --surface: #111820;
-  --surface-2: #18212b;
-  --surface-3: #212c38;
-  --hairline: rgba(255, 255, 255, 0.09);
-  --border: #263441;
+  --bg: #04121f;
+  --surface: #0b2438;
+  --surface-2: #123047;
+  --surface-3: #1a3e59;
+  --hairline: rgba(190, 218, 240, 0.1);
+  --border: #24506f;
 
-  --text: #eef2f6;
-  --text-dim: #a7b3c0;
-  --text-mute: #6b7885;
+  --text: #eaf1f7;
+  --text-dim: #a6bcce;
+  --text-mute: #66849b;
 
-  --brand: #5b97ff;
-  --brand-soft: rgba(91, 151, 255, 0.16);
-  --good: #34d399;
-  --warn: #fbbf24;
-  --bad: #f87171;
+  /* Azul acero: interacción y foco. Es un tinte del marino, no un color
+     nuevo, así que la interfaz no gana una cuarta familia solo por tener
+     estados de hover. */
+  --brand: #5e90b8;
+  --brand-soft: rgba(94, 144, 184, 0.16);
+
+  /* Verde para "conectado / en vivo". Es la excepción al resto de la
+     paleta y está pedida: en acero se confundía con el azul del cromo y
+     con el marino del fondo, y el estado de la conexión es justo lo que
+     un operador tiene que poder confirmar de un vistazo desde lejos.
+     Elegido en el lado frío del verde para que conviva con el marino. */
+  --good: #3ddc84;
+  --warn: #d5a03c;
+  --bad: #d9714e;
+
+  --terracotta: #c4603f;
+  --mustard: #d5a03c;
 
   --r: 16px;
   --r-sm: 10px;
-  --shadow: 0 2px 6px rgba(0, 0, 0, 0.3), 0 20px 48px -16px rgba(0, 0, 0, 0.6);
+  --shadow: 0 2px 6px rgba(2, 10, 18, 0.4), 0 24px 56px -18px rgba(2, 8, 16, 0.75);
   --gap: 16px;
 
-  /* glass */
-  --glass: rgba(15, 21, 28, 0.62);
-  --glass-strong: rgba(11, 16, 21, 0.82);
-  --blur: blur(22px) saturate(1.35);
+  /* Vidrio. Más translúcido que antes y teñido de marino: la idea es que el
+     color de fondo lo ponga el MAPA y los paneles solo lo filtren, así que
+     el alfa se queda lo bajo que permita seguir leyendo el texto encima.
+     Por debajo de ~0.5 el mapa gana y el texto deja de tener contraste. */
+  --glass: rgba(7, 27, 44, 0.55);
+  --glass-strong: rgba(4, 18, 31, 0.74);
+  --blur: blur(26px) saturate(1.25);
 }
 
 * {
@@ -138,10 +167,19 @@ button.ghost {
   background: #0a0e13;
   font: inherit;
 }
-/* recolour the OSM raster tiles into a dark basemap */
+/* Las teselas de OSM, convertidas en un basemap monocromo azul marino.
+   La cadena importa en ese orden: invert las oscurece, grayscale borra los
+   verdes y ocres de OSM que pelearían con la paleta, sepia les da un tono
+   único y hue-rotate lo lleva al marino. Queda un mapa de una sola familia
+   de color, que es lo que permite que la terracota de un incidente se vea
+   desde el otro lado de la sala.
+
+   Para calibrarlo a gusto son dos números: `saturate` sube o baja cuánto
+   azul tiene el mapa, y `brightness` cuánto se ven las calles. Es la única
+   línea que hay que tocar. */
 .map-bg .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(176deg) brightness(0.82) contrast(0.83)
-    saturate(0.2);
+  filter: invert(1) grayscale(1) sepia(1) hue-rotate(178deg) saturate(2)
+    brightness(0.66) contrast(1.05);
 }
 .leaflet-control-zoom {
   border: 1px solid var(--hairline) !important;
@@ -241,7 +279,15 @@ button.ghost {
 }
 .live.streaming .live-dot {
   background: var(--good);
+  /* El halo es lo que lo hace visible sobre el vidrio translúcido: un punto
+     de 7 px sin brillo se pierde contra el mapa que se ve por detrás. */
+  box-shadow: 0 0 0 3px rgba(61, 220, 132, 0.18), 0 0 10px rgba(61, 220, 132, 0.6);
   animation: pulse 2s infinite;
+}
+.live.streaming {
+  color: var(--text);
+  border-color: rgba(61, 220, 132, 0.35);
+  background: rgba(61, 220, 132, 0.1);
 }
 .live.error .live-dot {
   background: var(--bad);
@@ -991,4 +1037,549 @@ button.ghost {
   color: #3a3212;
   background: var(--warn);
   border-radius: 999px;
+}
+
+/* ============================================================
+   Gestor de incidentes (panel de revisión)
+   ============================================================ */
+
+.review {
+  display: flex;
+  flex-direction: column;
+  /* `.fpanel-body` ya es un flex column con altura definida, así que se
+     ocupa como hijo flex y no con height:100%, que dependería de que el
+     padre resuelva su altura en porcentajes. */
+  flex: 1 1 auto;
+  /* Un contenedor flex no baja del tamaño de su contenido salvo que se le
+     permita. Sin esto la lista de abajo nunca puede desbordar, y en vez de
+     aparecer scroll lo que pasa es que las tarjetas se aplastan y se
+     cortan. */
+  min-height: 0;
+  gap: 10px;
+}
+
+/* La barra de filtros: etiqueta encima de su selector, los dos selectores
+   repartiéndose el ancho, y el botón de recargar al final de la MISMA línea.
+   Antes iban en fila con la etiqueta al lado y en un panel angosto no cabían,
+   así que el botón saltaba solo a la línea siguiente y quedaba corrido. */
+.review-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.review-bar label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  /* Se reparten el espacio sobrante en partes iguales, y `min-width: 0`
+     les permite encogerse en un panel angosto en vez de desbordar. */
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-mute);
+}
+
+.review-bar select {
+  width: 100%;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 5px 6px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.review-reload {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.review-reload:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--brand);
+}
+
+.review-reload:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.review-error {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #fca5a5;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* La lista es lo único que crece y lo único que hace scroll. */
+.review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 2px 0 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.review-list li {
+  /* La clave del arreglo: cada tarjeta ocupa lo que necesita y NO se
+     comprime. El desbordamiento lo absorbe el scroll de la lista. */
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--sev, var(--warn));
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+.review-list li.open {
+  background: var(--surface-2);
+  border-color: var(--sev, var(--border));
+}
+
+.review-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  background: none;
+  border: 0;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.review-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Un título largo recorta con puntos suspensivos en vez de empujar el chip
+   de estado a la línea de abajo, que era lo que lo dejaba cortado. */
+.review-title strong,
+.review-title .meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-title .meta {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-mute);
+}
+
+.review-chip {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.review-body {
+  padding: 0 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-evidence img {
+  display: block;
+  width: 100%;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+}
+
+.review-imgloading,
+.review-noimg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 90px;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-mute);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.review-variant {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.review-variant button {
+  flex: 1 1 0;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 11px;
+  background: var(--surface-3);
+  color: var(--text-mute);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.review-variant button.on {
+  color: var(--text);
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+
+.review-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-mute);
+}
+
+.review-note {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.review-input {
+  width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+.review-input::placeholder {
+  color: var(--text-mute);
+}
+
+/* Los tres veredictos se envuelven a dos líneas si el panel es angosto, en
+   vez de salirse: son la acción principal y no pueden quedar fuera de vista. */
+.review-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.review-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1 1 auto;
+  min-width: 96px;
+  padding: 7px 8px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.review-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.review-btn.confirmado:hover:not(:disabled) {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+.review-btn.descartado:hover:not(:disabled) {
+  border-color: var(--text-mute);
+  color: var(--text-dim);
+}
+
+.review-btn.archivado:hover:not(:disabled) {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.review-hint {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-mute);
+}
+
+.review-foot {
+  flex: 0 0 auto;
+  padding-top: 6px;
+  border-top: 1px solid var(--hairline);
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+/* ============================================================
+   Detalle del incidente
+   ============================================================ */
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 10px;
+  border-left: 3px solid var(--sev, var(--warn));
+  color: var(--sev, var(--text));
+}
+
+.detail-headtext {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.detail-headtext strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.detail-headtext .meta {
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.detail-badge {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Los hechos interpretados. Cada uno lleva el número y, debajo, qué
+   significa: el número solo obliga al agente a saber cómo funciona el
+   detector, y eso no es parte de su trabajo. */
+.detail-facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 6px;
+}
+
+.detail-facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+/* Lo que apunta a que el incidente es real se marca en mostaza: el agente
+   ve primero lo que sostiene la alerta. */
+.detail-facts li.strong {
+  border-color: rgba(213, 160, 60, 0.4);
+  background: rgba(213, 160, 60, 0.07);
+}
+
+.detail-facts li.strong .detail-facticon {
+  color: var(--mustard);
+}
+
+.detail-facticon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--text-mute);
+}
+
+.detail-facts li div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.detail-facts .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-mute);
+}
+
+.detail-facts .v {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.detail-facts .h {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-dim);
+}
+
+.detail-detections,
+.detail-foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-mute);
+}
+
+.detail-detections svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.detail-raw-toggle {
+  align-self: flex-start;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px dashed var(--border);
+  color: var(--text-mute);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.detail-raw-toggle:hover {
+  color: var(--text-dim);
+}
+
+/* ── Lectura con IA ────────────────────────────────────────── */
+
+.detail-ai {
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+.detail-ai h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-mute);
+}
+
+.detail-ai h3 svg {
+  color: var(--mustard);
+}
+
+.detail-regen {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-mute);
+  cursor: pointer;
+}
+
+.detail-regen:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.detail-summary {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(213, 160, 60, 0.22);
+  background: rgba(213, 160, 60, 0.06);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+/* Que quede claro de dónde salió el texto. Un párrafo bien escrito tiene
+   autoridad que no se ha ganado: quien decide es la persona. */
+.detail-disclaimer {
+  margin: 6px 0 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--text-mute);
+}
+
+.detail-generate {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  background: var(--mustard);
+  border: 0;
+  border-radius: var(--r-sm);
+  color: #1a1204;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.detail-generate:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.detail-generate:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.detail-aierror {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: rgba(217, 113, 78, 0.12);
+  border: 1px solid rgba(217, 113, 78, 0.3);
+  font-size: 11px;
+  line-height: 1.45;
+  color: #e8a58c;
 }

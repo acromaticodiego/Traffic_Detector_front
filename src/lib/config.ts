@@ -26,6 +26,21 @@ export const PROTOCOL_VERSION = 2;
 
 export const CAMERAS_URL = `${API_BASE}/api/cameras`;
 
+export const INCIDENTS_URL = `${API_BASE}/api/incidents`;
+
+/** PATCH: confirmar, descartar o archivar un incidente ya guardado. */
+export const reviewUrl = (id: number) => `${INCIDENTS_URL}/${id}/review`;
+
+/** POST: genera el resumen con IA, o devuelve el ya guardado. `force`
+ *  lo regenera cuando el guardado quedó mal. */
+export const summaryUrl = (id: number, force = false) =>
+  `${INCIDENTS_URL}/${id}/summary${force ? "?force=true" : ""}`;
+
+/** La imagen del incidente. `original` es el frame limpio, sin las cajas
+ *  encima, que a veces tapan justo lo que hay que mirar. */
+export const evidenceUrl = (id: number, variant: "annotated" | "original" = "annotated") =>
+  `${INCIDENTS_URL}/${id}/evidence?variant=${variant}`;
+
 /** Every stream URL is camera-scoped; omitting the id lets the service pick
  *  the first camera in its registry. */
 function withCamera(base: string, camera?: string | null): string {

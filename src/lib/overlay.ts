@@ -1,17 +1,14 @@
 import type { FrameResult, Point, Track } from "./types";
+import { CLASS_COLOR, CLASS_FALLBACK, INCIDENT } from "./palette";
 
-/** Class colors mirror scripts/test_vision_engine.py (BGR -> CSS RGB). */
-const CLASS_COLORS: Record<string, string> = {
-  car: "rgb(0, 120, 255)",
-  motorcycle: "rgb(255, 165, 0)",
-  truck: "rgb(255, 0, 255)",
-  bus: "rgb(255, 210, 0)",
-  pedestrian: "rgb(255, 60, 60)",
-  ciclist: "rgb(0, 220, 220)",
-  monopatin: "rgb(167, 139, 250)",
-};
-const DEFAULT_COLOR = "rgb(0, 220, 120)";
-const INCIDENT_COLOR = "rgb(255, 40, 40)";
+/**
+ * Un color por clase: aquí el color ES el dato. Ver CLASS_COLOR en
+ * palette.ts para por qué el overlay se sale de las tres familias del
+ * resto de la interfaz.
+ */
+const CLASS_COLORS: Record<string, string> = CLASS_COLOR;
+const DEFAULT_COLOR = CLASS_FALLBACK;
+const INCIDENT_COLOR = INCIDENT;
 
 function colorFor(className: string): string {
   return CLASS_COLORS[className] ?? DEFAULT_COLOR;
@@ -81,10 +78,10 @@ function drawRoadRoi(ctx: CanvasRenderingContext2D, roi: Point[]): void {
   });
   ctx.closePath();
 
-  ctx.fillStyle = "rgba(56, 189, 248, 0.10)";
+  ctx.fillStyle = "rgba(94, 144, 184, 0.10)";
   ctx.fill();
 
-  ctx.strokeStyle = "rgba(56, 189, 248, 0.75)";
+  ctx.strokeStyle = "rgba(94, 144, 184, 0.75)";
   ctx.lineWidth = 2;
   ctx.setLineDash([8, 6]);
   ctx.stroke();

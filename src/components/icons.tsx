@@ -23,4 +23,25 @@ export {
   Trash2 as IconTrash,
   MoveDiagonal2 as IconResize,
   Cctv as IconCamera,
+  ClipboardCheck as IconReview,
+  Check as IconCheck,
+  Ban as IconDiscard,
+  Archive as IconArchive,
+  // Emergencia y vía. Todos salen de lucide, que ya estaba instalado: una
+  // segunda familia de iconos con otro grosor de trazo y otro radio se nota
+  // enseguida y ensucia más de lo que aporta.
+  Siren as IconSiren,
+  Ambulance as IconAmbulance,
+  TrafficCone as IconCone,
+  ShieldAlert as IconShield,
+  RadioTower as IconTower,
+  Gauge as IconGauge,
+  Route as IconRoute,
+  ScanEye as IconScan,
+  Sparkles as IconAI,
+  CarFront as IconCarFront,
+  Bike as IconBike,
+  PersonStanding as IconPerson,
+  Truck as IconTruck,
+  Bus as IconBus,
 } from "lucide-react";

@@ -28,6 +28,49 @@ export interface Incident {
   t: number | null;
 }
 
+/** Estado de la revisión humana de un incidente. Lo fija el servicio en
+ *  services/vision_service/app/db/models.py; mantener en sinronía. */
+export type ReviewStatus =
+  | "pendiente"
+  | "confirmado"
+  | "descartado"
+  | "archivado";
+
+/**
+ * Un incidente tal como lo devuelve GET /api/incidents.
+ *
+ * No es el mismo `Incident` que llega por el WebSocket: aquel es efímero y
+ * vive mientras dure la sesión, este ya está guardado, tiene id de base de
+ * datos, veredicto de revisión y puede tener imagen.
+ */
+export interface StoredIncident {
+  id: number;
+  camera_id: string;
+  cluster_id: string | null;
+  incident_type: string;
+  confidence: number;
+  video_t: number | null;
+  frame_id: number | null;
+  track_ids: number[];
+  bbox: { x1: number; y1: number; x2: number; y2: number } | null;
+  data: Record<string, unknown>;
+  detected_at: string;
+  review_status: ReviewStatus;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  review_note: string | null;
+  has_evidence: boolean;
+  /** Resumen escrito por el modelo. null mientras nadie lo haya pedido. */
+  ai_summary: string | null;
+  ai_model: string | null;
+}
+
+export interface IncidentPage {
+  items: StoredIncident[];
+  /** null = no hay más páginas. */
+  next_before_id: number | null;
+}
+
 export interface VisionEvent {
   event_type: string;
   timestamp: string;
