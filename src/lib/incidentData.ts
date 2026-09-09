@@ -42,9 +42,106 @@ function accelWord(accel: number): string {
   return "velocidad estable";
 }
 
+/**
+ * Qué pasó DESPUÉS del contacto, que es lo que de verdad decide si hubo
+ * choque.
+ *
+ * Va primero en la lista a propósito: dos cajas que se tocan en la imagen
+ * son ambiguas —la cámara aplasta la escena contra un plano, así que
+ * vehículos de carriles distintos se solapan— pero "siguieron circulando"
+ * le dice al agente en un segundo que esto es casi seguro un falso
+ * positivo, sin tener que mirar la foto.
+ */
+const AFTERMATH: Record<string, Fact> = {
+  immobilized: {
+    label: "Desenlace",
+    value: "quedó inmovilizado",
+    hint: "un vehículo se detuvo tras el contacto",
+    strong: true,
+  },
+  kept_moving: {
+    label: "Desenlace",
+    value: "siguieron circulando",
+    hint: "ninguno se detuvo: probablemente no hubo choque",
+  },
+  pending: {
+    label: "Desenlace",
+    value: "sin resolver",
+    hint: "aún esperando a ver si alguno se detiene",
+  },
+};
+
+/** TTC por debajo del cual la literatura de seguridad vial habla de un
+ *  conflicto serio. Espejo de TTC_CONFLICT_S en incident_engine.py. */
+const TTC_CONFLICT_S = 1.5;
+
+/**
+ * Lo que solo existe con la cámara calibrada: metros y segundos.
+ *
+ * Sin homografía estos campos no vienen, y la lista simplemente no los
+ * incluye — los incidentes viejos y las cámaras sin calibrar siguen
+ * mostrándose igual que antes.
+ */
+function metricFacts(data: Record<string, unknown>): Fact[] {
+  const facts: Fact[] = [];
+
+  const separation = Number(data.separation_m);
+
+  if (Number.isFinite(separation)) {
+    facts.push({
+      label: "Separación real",
+      value: `${separation.toFixed(1)} m`,
+      hint:
+        separation <= 1
+          ? "prácticamente en contacto sobre la vía"
+          : "medida sobre el asfalto, no en la imagen",
+      strong: separation <= 1,
+    });
+  }
+
+  const ttc = Number(data.ttc_s);
+
+  if (Number.isFinite(ttc)) {
+    facts.push({
+      label: "Tiempo hasta el impacto",
+      value: `${ttc.toFixed(1)} s`,
+      hint:
+        ttc <= TTC_CONFLICT_S
+          ? "conflicto: habrían chocado sin reaccionar"
+          : "había margen de sobra para reaccionar",
+      strong: ttc <= TTC_CONFLICT_S,
+    });
+  }
+
+  const closing = Number(data.closing_speed_ms);
+
+  if (Number.isFinite(closing)) {
+    facts.push({
+      label: "Se cerraban a",
+      value: `${Math.abs(closing).toFixed(1)} m/s`,
+      hint:
+        closing > 0.5
+          ? "la distancia entre ellos se acortaba"
+          : "no se estaban acercando",
+      strong: closing > 2,
+    });
+  }
+
+  return facts;
+}
+
 /** Los dos vehículos de una colisión, cada uno con su lectura. */
 function collisionFacts(data: Record<string, unknown>): Fact[] {
   const facts: Fact[] = [];
+
+  const aftermath = AFTERMATH[String(data.aftermath)];
+  if (aftermath) facts.push(aftermath);
+
+  // Cuando la cámara está calibrada, la física manda sobre la geometría de
+  // la imagen: la distancia en metros y el TTC dicen si esto fue un
+  // conflicto o dos vehículos circulando juntos, que en una vía urbana es
+  // lo normal. Va justo después del desenlace y antes de los píxeles.
+  facts.push(...metricFacts(data));
 
   const gap = Number(data.bbox_gap_px);
   const ref = Number(data.ref_size_px);
