@@ -16,6 +16,7 @@ import { AdminView } from "./components/views/AdminView";
 import { IconCone, IconEye, IconReview, IconSiren } from "./components/icons";
 import { useStore } from "./state/store";
 import { useCameras } from "./state/cameras";
+import { usePanels } from "./state/panels";
 import { useAuth } from "./state/auth";
 import { useView } from "./state/view";
 import { resolveSection } from "./lib/sections";
@@ -76,6 +77,20 @@ function Shell() {
   useEffect(() => {
     void loadCameras();
   }, [loadCameras]);
+
+  // Reajusta los paneles cuando cambia el tamaño de la ventana. Sus
+  // posiciones son absolutas y persistidas, así que sin esto un panel
+  // colocado con la ventana ancha queda fuera de pantalla al reducirla —o al
+  // cambiar de monitor— con su barra de título inalcanzable, que es la única
+  // forma de arrastrarlo de vuelta.
+  const reflow = usePanels((s) => s.reflow);
+
+  useEffect(() => {
+    reflow();
+
+    window.addEventListener("resize", reflow);
+    return () => window.removeEventListener("resize", reflow);
+  }, [reflow]);
 
   const { connect } = useInferenceSocket();
 

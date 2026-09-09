@@ -46,6 +46,7 @@ export {
   Bus as IconBus,
   LogOut as IconLogout,
   Lock as IconLock,
+  Menu as IconMenu,
   // Navegación principal y armazón.
   MonitorPlay as IconConsole,
   LayoutDashboard as IconDashboard,
