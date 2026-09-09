@@ -51,6 +51,9 @@ interface PanelsStore {
   setVisible: (id: PanelId, v: boolean) => void;
   focus: (id: PanelId) => void;
   resetLayout: () => void;
+
+  /** Devuelve al viewport todo panel que se haya quedado fuera. */
+  reflow: () => void;
 }
 
 export const usePanels = create<PanelsStore>()(
@@ -138,6 +141,35 @@ export const usePanels = create<PanelsStore>()(
           panels: { ...s.panels, [id]: { ...s.panels[id], z: topZ } },
         }));
       },
+
+      // Se llama cuando cambia el tamaño de la ventana. Las posiciones son
+      // absolutas y persistidas, así que sin esto un panel colocado con la
+      // ventana ancha queda fuera de pantalla al reducirla —o al cambiar de
+      // monitor, o al abrir las DevTools— y su barra de título deja de estar
+      // al alcance, que es la única forma de arrastrarlo de vuelta.
+      reflow: () =>
+        set((s) => {
+          const panels = { ...s.panels };
+          let cambio = false;
+
+          for (const id of Object.keys(panels) as PanelId[]) {
+            const ajustado = clampBox(panels[id]);
+
+            if (
+              ajustado.x !== panels[id].x ||
+              ajustado.y !== panels[id].y ||
+              ajustado.w !== panels[id].w ||
+              ajustado.h !== panels[id].h
+            ) {
+              panels[id] = ajustado;
+              cambio = true;
+            }
+          }
+
+          // Devolver el mismo objeto si nada se movió evita un render por
+          // cada píxel mientras se arrastra el borde de la ventana.
+          return cambio ? { panels } : s;
+        }),
 
       resetLayout: () => {
         try {

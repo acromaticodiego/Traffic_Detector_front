@@ -91,6 +91,24 @@ describe("foco y visibilidad", () => {
     expect(x + w).toBeGreaterThan(0);
   });
 
+  it("al encoger la ventana los paneles vuelven a ser alcanzables", () => {
+    // Pasa al cambiar de monitor, al abrir las DevTools o al rotar una
+    // tablet. Sin reajustar, un panel colocado con la ventana ancha queda
+    // con su barra de título fuera del viewport y no hay de dónde agarrarlo.
+    usePanels.setState((s) => ({
+      panels: {
+        ...s.panels,
+        video: { ...s.panels.video, x: window.innerWidth + 3000 },
+      },
+    }));
+
+    usePanels.getState().reflow();
+
+    expect(usePanels.getState().panels.video.x).toBeLessThanOrEqual(
+      window.innerWidth - 60,
+    );
+  });
+
   it("mostrar un panel oculto lo desminimiza", () => {
     const { toggleMin, setVisible } = usePanels.getState();
     toggleMin("incidents");

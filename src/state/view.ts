@@ -20,8 +20,15 @@ interface ViewStore {
   section: SectionId;
   dockOpen: boolean;
 
+  /** El menú de secciones. Cerrado por defecto: ocupaba 208 px permanentes
+   *  de un ancho que la consola necesita para sus paneles, y desplazaba
+   *  todo lo demás hacia la derecha hasta sacarlo de pantalla. */
+  railOpen: boolean;
+
   go: (section: SectionId) => void;
   toggleDock: () => void;
+  toggleRail: () => void;
+  closeRail: () => void;
 }
 
 export const useView = create<ViewStore>()(
@@ -29,10 +36,15 @@ export const useView = create<ViewStore>()(
     (set) => ({
       section: "console",
       dockOpen: true,
+      railOpen: false,
 
-      go: (section) => set({ section }),
+      // Navegar cierra el menú: es lo que uno espera de un cajón, y evita
+      // dejarlo tapando la sección a la que se acaba de entrar.
+      go: (section) => set({ section, railOpen: false }),
       toggleDock: () => set((s) => ({ dockOpen: !s.dockOpen })),
+      toggleRail: () => set((s) => ({ railOpen: !s.railOpen })),
+      closeRail: () => set({ railOpen: false }),
     }),
-    { name: "td-view", version: 1 },
+    { name: "td-view", version: 2 },
   ),
 );
