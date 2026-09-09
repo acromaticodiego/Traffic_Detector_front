@@ -318,7 +318,8 @@ export function VideoCanvas() {
         <span className="spacer" />
         <span className="frame-count">
           frame {curFrame}
-          {meta ? ` / ${meta.frame_count}` : ""} · inferencia hasta{" "}
+          {meta?.frame_count != null ? ` / ${meta.frame_count}` : ""} ·
+          inferencia hasta{" "}
           {processedT.toFixed(1)}s
         </span>
       </div>

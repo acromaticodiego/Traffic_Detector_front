@@ -76,10 +76,13 @@ export function useInferenceSocket() {
           log({
             kind: "sistema",
             level: "info",
-            text: "Video cargado",
+            text: msg.frame_count != null ? "Video cargado" : "Cámara conectada",
             detail:
               `${msg.width}×${msg.height} · ${msg.fps} fps · ` +
-              `${msg.frame_count} frames · ` +
+              // Una fuente en vivo no tiene duración: no hay número que dar.
+              (msg.frame_count != null
+                ? `${msg.frame_count} frames · `
+                : "fuente en vivo · ") +
               (msg.road_roi?.length
                 ? `calzada de ${msg.road_roi.length} vértices`
                 : "sin ROI de calzada"),

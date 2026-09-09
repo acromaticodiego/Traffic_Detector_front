@@ -22,7 +22,7 @@ export const NGROK_HEADERS: Record<string, string> = IS_NGROK
  * invisible — both sides keep talking and the payload just misses fields.
  * Keep in sync with services/vision_service/app/api/protocol.py.
  */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export const CAMERAS_URL = `${API_BASE}/api/cameras`;
 
