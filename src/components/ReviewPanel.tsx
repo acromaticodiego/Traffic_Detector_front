@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { evidenceUrl, NGROK_HEADERS } from "../lib/config";
+import { evidenceUrl } from "../lib/config";
+import { apiHeaders } from "../lib/session";
 import { incidentType } from "../lib/incidents";
 import {
   availableActions,
@@ -9,11 +10,13 @@ import {
   timeAgo,
 } from "../lib/review";
 import { useReview } from "../state/review";
+import { useAuth } from "../state/auth";
 import type { ReviewStatus, StoredIncident } from "../lib/types";
 import {
   IconArchive,
   IconCheck,
   IconDiscard,
+  IconLock,
   IconRefresh,
   IconShield,
 } from "./icons";
@@ -52,7 +55,7 @@ function Evidence({ incident }: { incident: StoredIncident }) {
     setUrl(null);
     setFailed(false);
 
-    fetch(evidenceUrl(incident.id, variant), { headers: NGROK_HEADERS })
+    fetch(evidenceUrl(incident.id, variant), { headers: apiHeaders() })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.blob();
@@ -126,6 +129,10 @@ function Card({ incident }: { incident: StoredIncident }) {
 
   const [note, setNote] = useState("");
 
+  // Solo cosmético: quien decide de verdad es el backend, que responde 403.
+  // Esto evita ofrecer un botón que va a fallar.
+  const puedeRevisar = useAuth((s) => s.can("incidents:review"));
+
   const isOpen = openId === incident.id;
   const busy = saving === incident.id;
   const info = statusInfo(incident.review_status);
@@ -180,14 +187,26 @@ function Card({ incident }: { incident: StoredIncident }) {
 
           <input
             className="review-input"
+            hidden={!puedeRevisar}
             placeholder="Nota (opcional): por qué lo descartas…"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             disabled={busy}
           />
 
+          {!puedeRevisar && (
+            <p className="review-readonly">
+              <IconLock width={12} height={12} />
+              <span>
+                Tu rol solo permite consultar. Un analista o un administrador
+                puede emitir el veredicto.
+              </span>
+            </p>
+          )}
+
           <div className="review-actions">
-            {availableActions(incident.review_status).map((status) => (
+            {puedeRevisar &&
+              availableActions(incident.review_status).map((status) => (
               <button
                 key={status}
                 className={`review-btn ${status}`}
@@ -196,8 +215,8 @@ function Card({ incident }: { incident: StoredIncident }) {
               >
                 {ACTION_ICON[status]}
                 <span>{ACTION_LABEL[status]}</span>
-              </button>
-            ))}
+                </button>
+              ))}
           </div>
 
           <p className="review-hint">

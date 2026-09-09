@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { CAMERAS_URL, NGROK_HEADERS } from "../lib/config";
+import { CAMERAS_URL } from "../lib/config";
+import { apiHeaders } from "../lib/session";
 import type { CameraInfo } from "../lib/types";
 
 interface CamerasStore {
@@ -44,7 +45,7 @@ export const useCameras = create<CamerasStore>((set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      const res = await fetch(CAMERAS_URL, { headers: NGROK_HEADERS });
+      const res = await fetch(CAMERAS_URL, { headers: apiHeaders() });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const list = (await res.json()) as CameraInfo[];

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { inferenceWsUrl, PROTOCOL_VERSION } from "../lib/config";
+import { wsUrlWithToken } from "../lib/session";
 import type { StreamMessage } from "../lib/types";
 import { useStore } from "../state/store";
 import { log, useLogs } from "../state/logs";
@@ -40,7 +41,7 @@ export function useInferenceSocket() {
       text: `Conectando a ${name ?? camera}`,
     });
 
-    const ws = new WebSocket(inferenceWsUrl(camera));
+    const ws = new WebSocket(wsUrlWithToken(inferenceWsUrl(camera)));
     wsRef.current = ws;
 
     ws.onopen = () => {

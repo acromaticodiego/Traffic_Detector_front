@@ -1583,3 +1583,212 @@ button.ghost {
   line-height: 1.45;
   color: #e8a58c;
 }
+
+/* ============================================================
+   Sesión: login, identidad y permisos
+   ============================================================ */
+
+.booting {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--text-mute);
+  font-size: 13px;
+}
+
+.login {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 24px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* Un resplandor de marino y terracota detrás de la tarjeta. El mapa no se
+   muestra aquí a propósito: antes de identificarse nadie tiene por qué ver
+   qué cámaras existen ni dónde están. */
+.login-glow {
+  position: absolute;
+  inset: -30%;
+  background:
+    radial-gradient(45% 45% at 25% 20%, rgba(94, 144, 184, 0.18), transparent 70%),
+    radial-gradient(40% 40% at 75% 80%, rgba(196, 96, 63, 0.14), transparent 70%);
+  pointer-events: none;
+}
+
+.login-card {
+  position: relative;
+  width: min(380px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r);
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  box-shadow: var(--shadow);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.login-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--r-sm);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.login-brand strong {
+  display: block;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.login-brand span {
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-field span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-mute);
+}
+
+.login-field input {
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+.login-field input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.login-field input::placeholder {
+  color: var(--text-mute);
+}
+
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: var(--r-sm);
+  background: rgba(217, 113, 78, 0.12);
+  border: 1px solid rgba(217, 113, 78, 0.32);
+  color: #e8a58c;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.login-error svg {
+  flex: 0 0 auto;
+}
+
+.login-submit {
+  padding: 11px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1204;
+  background: var(--mustard);
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.login-submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.login-submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.login-foot {
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-mute);
+}
+
+/* ── Identidad en la barra superior ─────────────────────────── */
+
+.whoami {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 10px;
+  padding-left: 12px;
+  border-left: 1px solid var(--hairline);
+}
+
+.whoami-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.whoami-text strong {
+  font-size: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.whoami-text span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--brand);
+}
+
+/* Aviso de solo lectura en el gestor de incidentes. */
+.review-readonly {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  border: 1px dashed var(--border);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-mute);
+}
+
+.review-readonly svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}

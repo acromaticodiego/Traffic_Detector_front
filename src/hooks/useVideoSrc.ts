@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { IS_NGROK, NGROK_HEADERS, videoUrl } from "../lib/config";
+import { IS_NGROK, videoUrl } from "../lib/config";
+import { apiHeaders } from "../lib/session";
 import { useCameras } from "../state/cameras";
 
 /**
@@ -36,7 +37,7 @@ export function useVideoSrc(): { src: string | null; error: string | null } {
     let revoked: string | null = null;
     let cancelled = false;
 
-    fetch(videoUrl(camera) + `&v=${CACHE_BUST}`, { headers: NGROK_HEADERS })
+    fetch(videoUrl(camera) + `&v=${CACHE_BUST}`, { headers: apiHeaders() })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.blob();
