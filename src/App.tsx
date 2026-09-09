@@ -12,10 +12,40 @@ import { LogDrawer } from "./components/LogDrawer";
 import { IconCone, IconEye, IconReview, IconSiren } from "./components/icons";
 import { useStore } from "./state/store";
 import { useCameras } from "./state/cameras";
+import { useAuth } from "./state/auth";
+import { LoginScreen } from "./components/LoginScreen";
 
+/**
+ * Decide qué se ve: la consola, el login, o nada mientras se comprueba.
+ *
+ * La consola es un componente aparte a propósito. Si sus hooks —el socket de
+ * inferencia, el store— vivieran aquí, quedarían DESPUÉS de un `return`
+ * condicional, y React exige que todos los hooks se llamen en el mismo orden
+ * en cada render. Al montarse y desmontarse la consola entera, además, el
+ * WebSocket se cierra solo al cerrar sesión.
+ */
 export default function App() {
+  const user = useAuth((s) => s.user);
+  const checking = useAuth((s) => s.checking);
+  const restore = useAuth((s) => s.restore);
+
+  useEffect(() => {
+    void restore();
+  }, [restore]);
+
+  // Mientras se comprueba el token guardado no se decide nada: pintar el
+  // login aquí lo haría parpadear en cada recarga con sesión válida.
+  if (checking) return <div className="booting">Cargando…</div>;
+
+  if (!user) return <LoginScreen />;
+
+  return <Console />;
+}
+
+function Console() {
   // The socket stays idle until this resolves and picks a camera.
   const loadCameras = useCameras((s) => s.load);
+
   useEffect(() => {
     void loadCameras();
   }, [loadCameras]);

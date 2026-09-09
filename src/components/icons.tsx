@@ -44,4 +44,6 @@ export {
   PersonStanding as IconPerson,
   Truck as IconTruck,
   Bus as IconBus,
+  LogOut as IconLogout,
+  Lock as IconLock,
 } from "lucide-react";

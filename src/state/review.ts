@@ -8,12 +8,8 @@
  */
 
 import { create } from "zustand";
-import {
-  INCIDENTS_URL,
-  NGROK_HEADERS,
-  reviewUrl,
-  summaryUrl,
-} from "../lib/config";
+import { INCIDENTS_URL, reviewUrl, summaryUrl } from "../lib/config";
+import { apiHeaders } from "../lib/session";
 import { DEFAULT_MIN_CONFIDENCE } from "../lib/review";
 import type { IncidentPage, ReviewStatus, StoredIncident } from "../lib/types";
 
@@ -67,7 +63,7 @@ export const useReview = create<ReviewStore>((set, get) => ({
     url.searchParams.set("limit", "200");
 
     try {
-      const res = await fetch(url, { headers: NGROK_HEADERS });
+      const res = await fetch(url, { headers: apiHeaders() });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -101,7 +97,7 @@ export const useReview = create<ReviewStore>((set, get) => ({
     try {
       const res = await fetch(reviewUrl(id), {
         method: "PATCH",
-        headers: { ...NGROK_HEADERS, "Content-Type": "application/json" },
+        headers: apiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ status, note: note || null }),
       });
 
@@ -136,7 +132,7 @@ export const useReview = create<ReviewStore>((set, get) => ({
     try {
       const res = await fetch(summaryUrl(id, force), {
         method: "POST",
-        headers: NGROK_HEADERS,
+        headers: apiHeaders(),
       });
 
       const body = await res.json();

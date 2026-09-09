@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useStore } from "../state/store";
 import { useReview } from "../state/review";
+import { useAuth } from "../state/auth";
 import { incidentType, severity } from "../lib/incidents";
 import { describeIncident, detectionCount, type Fact } from "../lib/incidentData";
 import { statusInfo, timeAgo } from "../lib/review";
@@ -66,6 +67,7 @@ function StoredDetail({ incident }: { incident: StoredIncident }) {
   const sev = severity(incident.confidence);
   const estado = statusInfo(incident.review_status);
   const busy = summarizing === incident.id;
+  const puedeResumir = useAuth((s) => s.can("incidents:summarize"));
 
   return (
     <div className="detail">
@@ -105,6 +107,11 @@ function StoredDetail({ incident }: { incident: StoredIncident }) {
               los datos. Es material para tu decisión, no la decisión.
             </p>
           </>
+        ) : !puedeResumir ? (
+          <p className="detail-disclaimer">
+            Aún no se ha analizado este caso. Generarlo requiere el rol de
+            analista o administrador.
+          </p>
         ) : (
           <>
             <button
