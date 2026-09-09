@@ -44,6 +44,42 @@
 
   /* Ancho de la barra de navegación. También está en state/panels.ts, que
      necesita el número para no colocar paneles debajo de ella. */
+  /* Acento frío secundario. Existe para que la interfaz tenga con qué jugar
+     sin tocar la terracota ni la mostaza, que aquí significan alarma y
+     precaución: si se usaran para decorar dejarían de leerse como urgencia.
+
+     SOLO decorativo — degradados, halos, estado activo. Nunca como color de
+     dato junto al acero: el validador de paleta los separa 13.5 con visión
+     normal y 5.6 en deuteranopía, así que en una gráfica serían la misma
+     barra para mucha gente. */
+  --iris: #9d6fd9;
+  --iris-soft: rgba(157, 111, 217, 0.16);
+
+  --grad-accent: linear-gradient(135deg, #5e90b8, #9d6fd9);
+  --grad-tile: linear-gradient(
+    158deg,
+    rgba(94, 144, 184, 0.1),
+    rgba(157, 111, 217, 0.05) 55%,
+    transparent
+  );
+
+  /* ---- Movimiento ----
+     Un solo juego de duraciones y curvas para toda la interfaz. Mezclar
+     tiempos es lo que hace que una pantalla parezca ensamblada de piezas
+     sueltas: si cada cosa entra a su ritmo, ninguna parece intencionada. */
+  --dur-fast: 0.14s;
+  --dur: 0.24s;
+  --dur-slow: 0.5s;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.32, 0.5, 1);
+
+  /* La línea de luz del borde superior es lo que le da grosor al cristal.
+     Sin ella los paneles son rectángulos translúcidos; con ella parecen
+     tener canto. */
+  --sheen: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --shadow-lift: 0 4px 12px rgba(2, 10, 18, 0.5),
+    0 28px 60px -22px rgba(2, 8, 16, 0.8);
+
   --rail-w: 208px;
 
   --r: 16px;
@@ -2820,4 +2856,410 @@ button.ghost {
 
 .user-editing h4 button:hover {
   color: var(--text);
+}
+
+/* ============================================================
+   Capa de ambiente, material y movimiento
+
+   Lo que hacía que la pantalla se sintiera quieta no era la falta de
+   componentes: era que nada respondía y que todo el color estaba en una
+   sola familia. Esto añade las tres cosas que faltaban — una atmósfera
+   detrás, canto y elevación en el cristal, y entradas escalonadas.
+   ============================================================ */
+
+/* Dos manchas de luz muy tenues sobre el mapa, a la deriva. Van entre el
+   basemap (z 0) y el contenido (z 2), sin capturar el ratón. Es lo que
+   convierte un fondo plano en una profundidad: el mapa deja de ser un
+   papel pintado y pasa a estar iluminado por algo. */
+.app::before {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 38% at 22% 24%, rgba(94, 144, 184, 0.18), transparent 70%),
+    radial-gradient(34% 34% at 78% 72%, rgba(157, 111, 217, 0.16), transparent 70%),
+    radial-gradient(45% 30% at 55% 5%, rgba(94, 144, 184, 0.1), transparent 75%);
+  animation: aurora 32s var(--ease) infinite alternate;
+}
+
+/* Lento a propósito. Una animación de fondo que se nota es una distracción
+   en una pantalla que la gente mira durante horas; esta solo tiene que
+   impedir que la imagen parezca congelada. */
+@keyframes aurora {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 2%, 0) scale(1.08);
+  }
+}
+
+/* ---------- material: canto y elevación ---------- */
+.tile,
+.card,
+.chart,
+.view-empty,
+.panel,
+.dock,
+.rail {
+  box-shadow: var(--shadow), var(--sheen);
+}
+
+/* Solo las superficies que llevan a algún sitio se levantan. Elevar una
+   tarjeta que no hace nada al pasar por encima promete un clic que no
+   existe. */
+.tile,
+.chart {
+  background-image: var(--grad-tile);
+  transition:
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.tile:hover,
+.chart:hover {
+  transform: translateY(-2px);
+  border-color: rgba(94, 144, 184, 0.3);
+  box-shadow: var(--shadow-lift), var(--sheen);
+}
+
+/* ---------- entradas escalonadas ---------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.view > * {
+  animation: rise var(--dur-slow) var(--ease) backwards;
+}
+/* El escalonado es lo que hace que una pantalla se sienta montada y no
+   volcada de golpe. Se corta pronto: más allá de cuatro pasos la última
+   pieza llega tarde y se lee como lentitud, no como ritmo. */
+.view > *:nth-child(1) { animation-delay: 0s; }
+.view > *:nth-child(2) { animation-delay: 0.05s; }
+.view > *:nth-child(3) { animation-delay: 0.1s; }
+.view > *:nth-child(4) { animation-delay: 0.15s; }
+.view > *:nth-child(n + 5) { animation-delay: 0.2s; }
+
+.tiles > .tile {
+  animation: rise var(--dur-slow) var(--ease) backwards;
+}
+.tiles > .tile:nth-child(1) { animation-delay: 0.06s; }
+.tiles > .tile:nth-child(2) { animation-delay: 0.12s; }
+.tiles > .tile:nth-child(3) { animation-delay: 0.18s; }
+.tiles > .tile:nth-child(4) { animation-delay: 0.24s; }
+
+/* ---------- las barras crecen desde la base ---------- */
+/* Crecer desde abajo y no aparecer: el gesto dice de dónde sale el valor.
+   El origen es la base porque es donde se apoya el dato — una barra que
+   escala desde el centro se lee como que se infla, no como que sube. */
+@keyframes grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.chart-bar {
+  transform-origin: bottom;
+  animation: grow var(--dur-slow) var(--ease-spring) backwards;
+  transition: background var(--dur-fast) var(--ease);
+}
+.chart-col:nth-child(1) .chart-bar { animation-delay: 0.02s; }
+.chart-col:nth-child(2) .chart-bar { animation-delay: 0.04s; }
+.chart-col:nth-child(3) .chart-bar { animation-delay: 0.06s; }
+.chart-col:nth-child(4) .chart-bar { animation-delay: 0.08s; }
+.chart-col:nth-child(5) .chart-bar { animation-delay: 0.1s; }
+.chart-col:nth-child(6) .chart-bar { animation-delay: 0.12s; }
+.chart-col:nth-child(7) .chart-bar { animation-delay: 0.14s; }
+.chart-col:nth-child(8) .chart-bar { animation-delay: 0.16s; }
+.chart-col:nth-child(9) .chart-bar { animation-delay: 0.18s; }
+.chart-col:nth-child(10) .chart-bar { animation-delay: 0.2s; }
+.chart-col:nth-child(11) .chart-bar { animation-delay: 0.22s; }
+.chart-col:nth-child(12) .chart-bar { animation-delay: 0.24s; }
+.chart-col:nth-child(13) .chart-bar { animation-delay: 0.26s; }
+.chart-col:nth-child(14) .chart-bar { animation-delay: 0.28s; }
+
+/* La barra activa se ilumina y se despega del fondo; el halo la separa de
+   sus vecinas sin cambiarle el color, que es lo que codifica el dato. */
+.chart-col:hover .chart-bar,
+.chart-col.on .chart-bar {
+  background: #7bb0d6;
+  box-shadow: 0 0 0 1px rgba(123, 176, 214, 0.35), 0 0 14px rgba(94, 144, 184, 0.45);
+}
+.chart-tip {
+  animation: rise var(--dur-fast) var(--ease);
+}
+
+/* La barra de veredictos también se despliega, y desde la izquierda, que es
+   por donde se lee. */
+.split-fill {
+  transform-origin: left;
+  animation: unroll var(--dur-slow) var(--ease) backwards;
+}
+@keyframes unroll {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ---------- marca y navegación ---------- */
+/* El degradado en la marca es el único sitio donde acero y violeta se tocan
+   de lleno: es un logo, no un dato, así que aquí la cercanía entre los dos
+   tonos juega a favor. */
+.brand-mark {
+  background: var(--grad-accent);
+  color: #f2f6fb;
+  box-shadow: 0 4px 14px rgba(94, 144, 184, 0.35), var(--sheen);
+}
+
+.rail-btn {
+  position: relative;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.rail-btn:hover {
+  transform: translateX(2px);
+}
+/* Una barrita de acento a la izquierda del activo. El color solo ya lo
+   marcaba, pero una forma se ve antes que un tinte y no depende de
+   distinguir dos azules. */
+.rail-btn.on::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 22px;
+  border-radius: 0 3px 3px 0;
+  background: var(--grad-accent);
+  transform: translateY(-50%);
+  animation: rise var(--dur) var(--ease-spring);
+}
+
+/* ---------- foco, botones y esqueletos ---------- */
+/* Antes no había anillo de foco visible en ningún sitio: quien navega con
+   teclado no sabía dónde estaba. :focus-visible y no :focus para que no
+   aparezca al hacer clic con el ratón. */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+button {
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+button:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tag,
+.shift-pill {
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+/* Un contador que cambia no debe aparecer de golpe: el parpadeo delata que
+   se recargó todo, cuando en realidad solo subió un número. */
+.tile-value {
+  animation: rise var(--dur) var(--ease);
+}
+
+/* Esqueletos de carga. Un bloque con la forma de lo que viene dice "esto
+   está llegando"; la palabra "Cargando" dice "no hay nada", y la pantalla
+   parece rota mientras tanto. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--r-sm);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+.skeleton-tile {
+  height: 92px;
+}
+.skeleton-chart {
+  height: 190px;
+}
+.skeleton-row {
+  height: 38px;
+  margin-bottom: 8px;
+}
+
+/* ---------- barras de desplazamiento ---------- */
+/* Las del sistema son de una interfaz clara y cortan el cristal por la
+   mitad cada vez que aparecen. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--border);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- quien pide menos movimiento, recibe menos ---------- */
+/* No es un extra de accesibilidad: para algunas personas el movimiento
+   provoca mareo, y esta es una pantalla de turno completo. Se apaga todo
+   salvo el punto de "en vivo", que codifica un estado y no es decoración. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .app::before {
+    animation: none;
+  }
+
+  .tile:hover,
+  .chart:hover,
+  .rail-btn:hover {
+    transform: none;
+  }
+}
+
+/* Texto solo para lectores de pantalla. Los esqueletos son decoración para
+   quien ve la pantalla y ruido para quien no, así que el aviso de carga
+   tiene que existir en algún sitio. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* La pantalla de arranque era una línea de texto gris sobre negro: el primer
+   segundo de la aplicación, y el más pobre. Ahora late con la marca. */
+.booting {
+  gap: 14px;
+  grid-auto-flow: row;
+  background: var(--bg);
+}
+.booting::before {
+  content: "";
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--grad-accent);
+  box-shadow: 0 6px 20px rgba(94, 144, 184, 0.35);
+  animation: breathe 1.8s var(--ease) infinite;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+/* ---------- ajustes finos ---------- */
+/* Los controles de cabecera de un panel son diminutos y van pegados: el halo
+   de foco de los botones normales los emborrona en vez de destacarlos. */
+.fpanel-actions button:hover:not(:disabled) {
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Administración usa su propio contenedor, así que entra con el mismo
+   escalonado que el resto de secciones en vez de aparecer de golpe. */
+.admin > * {
+  animation: rise var(--dur-slow) var(--ease) backwards;
+}
+.admin > *:nth-child(1) { animation-delay: 0s; }
+.admin > *:nth-child(2) { animation-delay: 0.06s; }
+.admin > *:nth-child(n + 3) { animation-delay: 0.12s; }
+
+.admin-panel {
+  background-image: var(--grad-tile);
+  box-shadow: var(--shadow), var(--sheen);
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+.admin-panel:hover {
+  border-color: rgba(94, 144, 184, 0.28);
+}
+
+/* Las filas de la lista de cuentas responden al ratón: sin eso, una tabla
+   larga es un muro y no se sabe qué fila se está leyendo. */
+.user-list li {
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.user-list li:hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.grid tbody tr {
+  transition: background var(--dur-fast) var(--ease);
+}
+.grid tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
 }

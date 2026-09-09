@@ -10,6 +10,7 @@ import {
 import { statusInfo } from "../../lib/review";
 import type { ReviewStatus } from "../../lib/types";
 import { DayBars } from "../charts/DayBars";
+import { DashboardSkeleton } from "../Skeleton";
 import { IconRefresh } from "../icons";
 
 /** El contador del turno abierto, avanzando en pantalla. */
@@ -58,16 +59,7 @@ export function DashboardView() {
     );
   }
 
-  if (!data) {
-    return (
-      <div className="view">
-        <div className="view-empty">
-          <h2>Cargando…</h2>
-          <p>Reuniendo los turnos y los registros.</p>
-        </div>
-      </div>
-    );
-  }
+  if (!data) return <DashboardSkeleton />;
 
   const hoy = data.today;
   const enTurno = data.shift !== null;
