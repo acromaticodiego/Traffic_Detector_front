@@ -31,7 +31,7 @@ interface AuthStore {
 
   restore: () => Promise<void>;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   can: (permission: string) => boolean;
 }
 
@@ -92,7 +92,20 @@ export const useAuth = create<AuthStore>((set, get) => ({
     }
   },
 
-  logout: () => {
+  logout: async () => {
+    // Cerrar el turno ANTES de soltar el token, que es lo único que autoriza
+    // la llamada. Si falla —sin red, servicio caído— la sesión se cierra
+    // igual: el turno quedaría abierto y lo cierra después el barrido por
+    // inactividad, que es mucho mejor que dejar a alguien sin poder salir.
+    try {
+      await fetch(`${API_BASE}/api/shifts/close`, {
+        method: "POST",
+        headers: apiHeaders(),
+      });
+    } catch {
+      /* ignorado a propósito: ver arriba */
+    }
+
     clearToken();
     set({ user: null, error: null });
   },

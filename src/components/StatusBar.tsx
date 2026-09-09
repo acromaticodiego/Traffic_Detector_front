@@ -87,7 +87,11 @@ export function StatusBar({
                 primero que tiene que poder comprobar es con qué rol entró. */}
             <span>{user.role}</span>
           </div>
-          <button className="ghost" onClick={logout} title="Cerrar sesión">
+          <button
+            className="ghost"
+            onClick={() => void logout()}
+            title="Cerrar sesión"
+          >
             <IconLogout width={14} height={14} />
           </button>
         </div>

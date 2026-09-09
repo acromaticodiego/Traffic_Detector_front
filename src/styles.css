@@ -1975,3 +1975,351 @@ button.ghost {
 .dock.closed {
   padding: 6px;
 }
+
+/* ============================================================
+   Dashboard del operario
+   ============================================================ */
+
+.dash {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.dash-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.dash-head h2 {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 650;
+}
+.dash-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12px;
+}
+.dash-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tag {
+  padding: 2px 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+/* Estado del turno. Verde solo cuando esta abierto: es el mismo verde de
+   "en vivo" de la barra superior y significa lo mismo, algo corriendo ahora. */
+.shift-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  font-size: 11px;
+  color: var(--text-mute);
+}
+.shift-pill.on {
+  color: var(--good);
+  border-color: rgba(61, 220, 132, 0.32);
+  background: rgba(61, 220, 132, 0.1);
+}
+
+.select {
+  padding: 6px 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r);
+}
+.tile-label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-mute);
+}
+/* La cifra manda: es lo unico que se lee de lejos. Tabular para que al
+   actualizarse no bailen los digitos. */
+.tile-value {
+  font-size: 26px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.tile-hint {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.card {
+  padding: 16px 18px;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r);
+}
+.card h3 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 620;
+  color: var(--text-dim);
+}
+.dash-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+/* ---------- graficas ---------- */
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 12px;
+}
+.chart {
+  margin: 0;
+  padding: 16px 18px;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r);
+}
+.chart figcaption {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.chart figcaption strong {
+  font-size: 13px;
+  font-weight: 620;
+}
+.chart figcaption span {
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.chart-plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  /* 2px entre barras: el hueco es lo que las convierte en valores separados
+     en vez de una mancha continua. */
+  gap: 2px;
+  height: 120px;
+  /* Linea de base tenue: sin ella un dia en cero no se distingue de un dia
+     sin dato. */
+  border-bottom: 1px solid var(--hairline);
+}
+.chart-col {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  cursor: default;
+}
+.chart-bar {
+  width: 100%;
+  min-height: 2px;
+  background: var(--brand);
+  /* Redondeado solo arriba: se suaviza el extremo de dato, no el que se
+     apoya en la base, para que la barra no parezca flotar. */
+  border-radius: 4px 4px 0 0;
+}
+.chart-col:hover .chart-bar,
+.chart-col.on .chart-bar {
+  background: #7bb0d6;
+}
+/* Solo el dia mas alto lleva numero encima. Uno en cada barra es ruido. */
+.chart-peak {
+  position: absolute;
+  bottom: calc(100% + 2px);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-mute);
+  white-space: nowrap;
+}
+.chart-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  padding: 5px 9px;
+  background: var(--glass-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.chart-tip strong {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.chart-tip span {
+  font-size: 10px;
+  color: var(--text-mute);
+}
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--text-mute);
+}
+
+/* ---------- veredictos ---------- */
+.verdict-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.verdict-row strong {
+  font-size: 24px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+}
+
+.split-bar {
+  display: flex;
+  /* El hueco de 2px hace de separador: sin el, dos rellenos contiguos se
+     leen como una sola barra. */
+  gap: 2px;
+  height: 8px;
+  margin-bottom: 10px;
+}
+.split-fill {
+  border-radius: 3px;
+}
+.split-fill.confirmado {
+  background: #d9714e;
+}
+/* Descartado se apaga a proposito, igual que en el gestor de incidentes: deja
+   de pedir atencion. Por eso lee grisaceo, y por eso siempre va etiquetado. */
+.split-fill.descartado {
+  background: #66849b;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.verdict-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.verdict-dot.confirmado {
+  background: #d9714e;
+}
+.verdict-dot.descartado {
+  background: #66849b;
+}
+
+/* ---------- tablas ---------- */
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.grid th {
+  padding: 0 10px 8px;
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-mute);
+  border-bottom: 1px solid var(--hairline);
+}
+.grid td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: middle;
+}
+.grid tr:last-child td {
+  border-bottom: none;
+}
+
+.linky {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--brand);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.linky:hover {
+  text-decoration: underline;
+}
+
+.small {
+  font-size: 11.5px;
+}
+.dash-foot {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--text-mute);
+}

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useInferenceSocket } from "./hooks/useInferenceSocket";
+import { useHeartbeat } from "./hooks/useHeartbeat";
 import { StatusBar } from "./components/StatusBar";
 import { VideoCanvas } from "./components/VideoCanvas";
 import { IncidentList } from "./components/IncidentList";
@@ -77,6 +78,10 @@ function Shell() {
   }, [loadCameras]);
 
   const { connect } = useInferenceSocket();
+
+  // El turno se cuenta con la sesión abierta, no con la consola a la vista:
+  // quien pasa la mañana en el gestor de incidentes está trabajando igual.
+  useHeartbeat(true);
 
   return (
     <div className="app">
