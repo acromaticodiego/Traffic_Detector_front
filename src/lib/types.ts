@@ -119,7 +119,12 @@ export interface MetaMessage {
   /** the camera this stream belongs to */
   camera?: CameraInfo;
   fps: number;
-  frame_count: number;
+  /**
+   * Cuántos frames tiene la fuente, o null si no tiene final que contar
+   * (una cámara en vivo). null no es lo mismo que 0, que sería un video
+   * vacío: con null simplemente no hay total contra el que medir.
+   */
+  frame_count: number | null;
   width: number;
   height: number;
   stride: number;
