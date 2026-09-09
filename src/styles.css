@@ -42,6 +42,10 @@
   --terracotta: #c4603f;
   --mustard: #d5a03c;
 
+  /* Ancho de la barra de navegación. También está en state/panels.ts, que
+     necesita el número para no colocar paneles debajo de ella. */
+  --rail-w: 208px;
+
   --r: 16px;
   --r-sm: 10px;
   --shadow: 0 2px 6px rgba(2, 10, 18, 0.4), 0 24px 56px -18px rgba(2, 8, 16, 0.75);
@@ -454,7 +458,7 @@ button.ghost {
 /* ---------- dock (bottom-left) ---------- */
 .dock {
   position: fixed;
-  left: 16px;
+  left: calc(var(--rail-w) + 16px);
   bottom: 16px;
   z-index: 40;
   display: flex;
@@ -1791,4 +1795,183 @@ button.ghost {
 .review-readonly svg {
   flex: 0 0 auto;
   margin-top: 2px;
+}
+
+
+/* ============================================================
+   Armazón: barra de navegación y secciones
+   ============================================================ */
+
+/* La barra flota sobre el mapa como los paneles, en vez de empujarlo: el
+   basemap a sangre es la identidad de la pantalla, y partirlo con una columna
+   opaca lo convertiría en un widget. El contenido sí se corre a su derecha. */
+.rail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--rail-w);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 10px;
+  background: var(--glass-strong);
+  backdrop-filter: var(--blur);
+  border-right: 1px solid var(--hairline);
+}
+
+.rail-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 11px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+}
+.rail-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+.rail-btn.on {
+  background: var(--brand-soft);
+  border-color: rgba(94, 144, 184, 0.34);
+  color: var(--text);
+}
+.rail-btn.on .rail-icon {
+  color: var(--brand);
+}
+
+.rail-icon {
+  display: flex;
+  flex: none;
+  color: var(--text-mute);
+}
+.rail-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.rail-text strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+/* La coletilla explica la sección sin obligar a entrar en ella. Se recorta en
+   vez de envolver: dos líneas descuadrarían la altura de un botón y no del
+   resto. */
+.rail-text small {
+  font-size: 10.5px;
+  color: var(--text-mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El primer hijo de .app es el mapa, que va a sangre; esto es todo lo demás. */
+.shell {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  margin-left: var(--rail-w);
+}
+
+/* La consola se oculta, no se desmonta: así el WebSocket sigue vivo mientras
+   miras el dashboard. Explícito porque .console es flex y el display del
+   atributo hidden lo perdería. */
+.console[hidden] {
+  display: none;
+}
+
+.topbar-section {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  padding-left: 4px;
+}
+
+/* ---------- lienzo de una sección que no es la consola ---------- */
+.view {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 22px;
+}
+
+.view-empty {
+  max-width: 520px;
+  margin: 12vh auto 0;
+  padding: 26px 28px;
+  text-align: center;
+  background: var(--glass);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+}
+.view-empty h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 650;
+}
+.view-empty p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+/* ---------- dock plegable ---------- */
+.dock-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 6px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-mute);
+  cursor: pointer;
+  font: inherit;
+}
+.dock-head:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-dim);
+}
+.dock-head .dock-label {
+  padding: 0;
+}
+/* Plegado sigue diciendo cuántos paneles hay abiertos, para no tener que
+   abrirlo solo para averiguarlo. */
+.dock-count {
+  margin-left: auto;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-mute);
+}
+.dock-caret {
+  flex: none;
+  transition: transform 0.16s ease;
+}
+.dock-caret.up {
+  transform: rotate(180deg);
+}
+.dock-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.dock.closed {
+  padding: 6px;
 }

@@ -13,13 +13,16 @@ export interface PanelBox {
   z: number;
 }
 
+/** Ancho de la barra de navegación. Los paneles no se meten debajo. */
+const RAIL = 208;
+
 const DEFAULTS: Record<PanelId, PanelBox> = {
-  incidents: { x: 20, y: 74, w: 320, h: 560, minimized: false, visible: true, z: 11 },
-  video: { x: 360, y: 74, w: 760, h: 540, minimized: false, visible: true, z: 12 },
-  details: { x: 360, y: 632, w: 760, h: 250, minimized: false, visible: true, z: 10 },
+  incidents: { x: 228, y: 74, w: 320, h: 560, minimized: false, visible: true, z: 11 },
+  video: { x: 568, y: 74, w: 760, h: 540, minimized: false, visible: true, z: 12 },
+  details: { x: 568, y: 632, w: 760, h: 250, minimized: false, visible: true, z: 10 },
   // Arranca oculto: es una herramienta de turno de revisión, no algo que el
   // operador que solo mira el vivo necesite tapándole el video.
-  review: { x: 1140, y: 74, w: 460, h: 700, minimized: false, visible: false, z: 13 },
+  review: { x: 1348, y: 74, w: 460, h: 700, minimized: false, visible: false, z: 13 },
 };
 
 const TOP_BAR = 60;
@@ -33,7 +36,7 @@ function clampBox(b: PanelBox): PanelBox {
     ...b,
     w,
     h,
-    x: Math.min(Math.max(b.x, 8 - w + 120), vw - 60),
+    x: Math.min(Math.max(b.x, RAIL - w + 120), vw - 60),
     y: Math.min(Math.max(b.y, TOP_BAR), vh - 44),
   };
 }
@@ -147,7 +150,12 @@ export const usePanels = create<PanelsStore>()(
     }),
     {
       name: "td-panels",
-      version: 2,
+      // 3: apareció la barra de navegación y las posiciones por defecto se
+      // corrieron a su derecha. Las guardadas se descartan una vez, porque
+      // conservarlas dejaría los paneles debajo de la barra sin forma
+      // evidente de recuperarlos.
+      version: 3,
+      migrate: (persisted, version) => (version < 3 ? undefined : persisted),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<PanelsStore>;
         const panels = { ...current.panels };

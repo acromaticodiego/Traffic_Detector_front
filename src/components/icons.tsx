@@ -46,4 +46,9 @@ export {
   Bus as IconBus,
   LogOut as IconLogout,
   Lock as IconLock,
+  // Navegación principal y armazón.
+  MonitorPlay as IconConsole,
+  LayoutDashboard as IconDashboard,
+  UsersRound as IconUsers,
+  ChevronDown as IconChevronDown,
 } from "lucide-react";

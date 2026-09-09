@@ -9,19 +9,24 @@ import { MapBackground } from "./components/MapBackground";
 import { FloatingPanel } from "./components/FloatingPanel";
 import { Dock } from "./components/Dock";
 import { LogDrawer } from "./components/LogDrawer";
+import { Sidebar } from "./components/Sidebar";
+import { DashboardView } from "./components/views/DashboardView";
+import { AdminView } from "./components/views/AdminView";
 import { IconCone, IconEye, IconReview, IconSiren } from "./components/icons";
 import { useStore } from "./state/store";
 import { useCameras } from "./state/cameras";
 import { useAuth } from "./state/auth";
+import { useView } from "./state/view";
+import { resolveSection } from "./lib/sections";
 import { LoginScreen } from "./components/LoginScreen";
 
 /**
- * Decide qué se ve: la consola, el login, o nada mientras se comprueba.
+ * Decide qué se ve: la aplicación, el login, o nada mientras se comprueba.
  *
- * La consola es un componente aparte a propósito. Si sus hooks —el socket de
+ * El armazón es un componente aparte a propósito. Si sus hooks —el socket de
  * inferencia, el store— vivieran aquí, quedarían DESPUÉS de un `return`
  * condicional, y React exige que todos los hooks se llamen en el mismo orden
- * en cada render. Al montarse y desmontarse la consola entera, además, el
+ * en cada render. Al montarse y desmontarse el armazón entero, además, el
  * WebSocket se cierra solo al cerrar sesión.
  */
 export default function App() {
@@ -39,10 +44,31 @@ export default function App() {
 
   if (!user) return <LoginScreen />;
 
-  return <Console />;
+  return <Shell />;
 }
 
-function Console() {
+/**
+ * La aplicación con sesión: navegación a la izquierda y la sección activa a
+ * la derecha.
+ *
+ * El socket de inferencia vive aquí y no dentro de la consola porque cambiar
+ * de sección no debe cortarlo. La consola se OCULTA en vez de desmontarse por
+ * lo mismo: desmontarla cerraría el WebSocket, y con el pipeline actual volver
+ * a ella reprocesaría el video desde el primer frame.
+ */
+function Shell() {
+  const can = useAuth((s) => s.can);
+  const guardada = useView((s) => s.section);
+  const go = useView((s) => s.go);
+
+  const section = resolveSection(guardada, can);
+
+  // Corrige el store cuando la sección guardada ya no está permitida, para
+  // que la barra lateral no quede marcando una sección que no se está viendo.
+  useEffect(() => {
+    if (section !== guardada) go(section);
+  }, [section, guardada, go]);
+
   // The socket stays idle until this resolves and picks a camera.
   const loadCameras = useCameras((s) => s.load);
 
@@ -51,14 +77,30 @@ function Console() {
   }, [loadCameras]);
 
   const { connect } = useInferenceSocket();
-  const incidentCount = useStore((s) => s.incidents.length);
 
   return (
     <div className="app">
       <MapBackground />
 
-      <StatusBar onReconnect={connect} />
+      <Sidebar />
 
+      <div className="shell">
+        <StatusBar onReconnect={connect} section={section} />
+
+        <Console hidden={section !== "console"} />
+
+        {section === "dashboard" && <DashboardView />}
+        {section === "admin" && <AdminView />}
+      </div>
+    </div>
+  );
+}
+
+function Console({ hidden }: { hidden: boolean }) {
+  const incidentCount = useStore((s) => s.incidents.length);
+
+  return (
+    <div className="console" hidden={hidden}>
       <FloatingPanel
         id="incidents"
         title="Incidentes"
