@@ -20,6 +20,7 @@ import {
   IconRefresh,
   IconUsers,
 } from "../icons";
+import { RowsSkeleton } from "../Skeleton";
 
 const VACIO: NewUser = {
   email: "",
@@ -70,7 +71,7 @@ export function AdminView() {
           </h3>
 
           {loading && items.length === 0 ? (
-            <p className="admin-empty">Cargando…</p>
+            <RowsSkeleton rows={4} />
           ) : (
             <ul className="user-list">
               {items.map((u) => (
