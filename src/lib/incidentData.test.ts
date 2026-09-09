@@ -78,6 +78,83 @@ describe("colisión", () => {
   });
 });
 
+describe("desenlace", () => {
+  it("marca como fuerte que un vehículo quedara inmovilizado", () => {
+    const f = fact({ ...COLISION, aftermath: "immobilized" }, "Desenlace");
+
+    expect(f?.value).toBe("quedó inmovilizado");
+    expect(f?.strong).toBe(true);
+  });
+
+  it("avisa cuando los dos siguieron circulando", () => {
+    // Es el falso positivo típico y el agente tiene que verlo sin abrir la
+    // foto: la caja que se solapa era de otro carril.
+    const f = fact({ ...COLISION, aftermath: "kept_moving" }, "Desenlace");
+
+    expect(f?.hint).toContain("probablemente no hubo choque");
+    expect(f?.strong).toBeFalsy();
+  });
+
+  it("va de primero, antes que la geometría", () => {
+    const labels = describeIncident({
+      ...COLISION,
+      aftermath: "kept_moving",
+    }).map((f) => f.label);
+
+    expect(labels[0]).toBe("Desenlace");
+  });
+
+  it("un incidente viejo sin desenlace no rompe nada", () => {
+    // Los que ya estaban guardados antes de este cambio no traen el campo.
+    expect(fact(COLISION, "Desenlace")).toBeUndefined();
+    expect(describeIncident(COLISION).length).toBeGreaterThan(0);
+  });
+});
+
+describe("métricas físicas (cámara calibrada)", () => {
+  const METRICO = {
+    ...COLISION,
+    separation_m: 0.8,
+    closing_speed_ms: 3.2,
+    ttc_s: 0.9,
+  };
+
+  it("muestra la separación real sobre el asfalto", () => {
+    const f = fact(METRICO, "Separación real");
+
+    expect(f?.value).toBe("0.8 m");
+    expect(f?.strong).toBe(true);
+  });
+
+  it("marca como conflicto un TTC por debajo de 1,5 s", () => {
+    const f = fact(METRICO, "Tiempo hasta el impacto");
+
+    expect(f?.hint).toContain("habrían chocado");
+    expect(f?.strong).toBe(true);
+  });
+
+  it("no marca como conflicto un TTC holgado", () => {
+    const f = fact({ ...METRICO, ttc_s: 4.0 }, "Tiempo hasta el impacto");
+
+    expect(f?.hint).toContain("margen de sobra");
+    expect(f?.strong).toBeFalsy();
+  });
+
+  it("avisa cuando no se estaban acercando", () => {
+    // El falso positivo dominante: van juntos pero sin cerrarse.
+    const f = fact({ ...METRICO, closing_speed_ms: 0.1 }, "Se cerraban a");
+
+    expect(f?.hint).toContain("no se estaban acercando");
+  });
+
+  it("una cámara sin calibrar no muestra nada de esto", () => {
+    // Los incidentes viejos y las cámaras sin homografía siguen igual.
+    expect(fact(COLISION, "Separación real")).toBeUndefined();
+    expect(fact(COLISION, "Tiempo hasta el impacto")).toBeUndefined();
+    expect(describeIncident(COLISION).length).toBeGreaterThan(0);
+  });
+});
+
 describe("vehículo detenido", () => {
   it("convierte los frames a segundos", () => {
     expect(fact(DETENIDO, "Tiempo detenido")?.hint).toBe("~4.0 s sin moverse");
