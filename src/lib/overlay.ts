@@ -33,6 +33,8 @@ export interface DrawOptions {
   incidents?: IncidentMarker[];
   /** road polygon in normalized 0..1 coords — the area traffic level measures */
   roadRoi?: Point[] | null;
+  /** el frame que manda el servicio, pintado bajo todo lo demás */
+  background?: ImageBitmap | null;
 }
 
 export function drawOverlay(
@@ -42,6 +44,10 @@ export function drawOverlay(
 ): void {
   const { canvas } = ctx;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (opts.background) {
+    ctx.drawImage(opts.background, 0, 0, canvas.width, canvas.height);
+  }
 
   const s = opts.scale;
 

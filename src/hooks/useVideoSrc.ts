@@ -23,13 +23,22 @@ import { useCameras } from "../state/cameras";
 // changes on every page load -> defeats any stale <video> cache after a swap
 const CACHE_BUST = Date.now();
 
-export function useVideoSrc(): { src: string | null; error: string | null } {
+export function useVideoSrc(
+  enabled = true,
+): { src: string | null; error: string | null } {
   const camera = useCameras((s) => s.selectedId);
 
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Con el servicio mandando los frames no hay archivo que descargar, y
+    // este hook se trae el clip entero a memoria.
+    if (!enabled) {
+      setSrc(null);
+      return;
+    }
+
     // Nothing to play until the registry says which camera we are watching.
     if (!camera) {
       setSrc(null);
@@ -64,7 +73,7 @@ export function useVideoSrc(): { src: string | null; error: string | null } {
       cancelled = true;
       if (revoked) URL.revokeObjectURL(revoked);
     };
-  }, [camera]);
+  }, [camera, enabled]);
 
   return { src, error };
 }

@@ -128,6 +128,8 @@ export interface MetaMessage {
   width: number;
   height: number;
   stride: number;
+  /** si el servicio manda el frame ya procesado en cada mensaje */
+  streams_frames?: boolean;
   /** occupancy thresholds (0..1) the backend uses for medio / alto */
   traffic_thresholds: { medium: number; high: number };
   /** road polygon in normalized 0..1 coords; null = whole frame.
@@ -139,6 +141,15 @@ export interface FrameMessage {
   type: "frame";
   frame_id: number;
   t: number;
+  /**
+   * El frame ya procesado, en JPEG codificado en base64. Viaja junto a sus
+   * cajas a propósito: si la imagen y sus detecciones llegaran por separado
+   * podrían descasarse, y se verían cajas de un instante sobre otro.
+   *
+   * null cuando el servicio no manda frames y el cliente reproduce el
+   * archivo por su cuenta.
+   */
+  image?: string | null;
   tracks: Track[];
   incidents: Incident[];
   events: VisionEvent[];

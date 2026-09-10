@@ -8,6 +8,7 @@ import {
   MARKER_STICKY_CONFIDENCE,
 } from "../lib/incidents";
 import { useVideoSrc } from "../hooks/useVideoSrc";
+import { liveFrame } from "../lib/liveFrame";
 import { useStore } from "../state/store";
 import { log } from "../state/logs";
 import type { TrafficInfo } from "../lib/types";
@@ -43,12 +44,27 @@ function contentRect(video: HTMLVideoElement) {
   };
 }
 
+/** Caja de la imagen dentro del contenedor, con las proporciones intactas. */
+function fitRect(wrap: HTMLElement, srcW: number, srcH: number) {
+  const cw = wrap.clientWidth;
+  const ch = wrap.clientHeight;
+  if (!srcW || !srcH) return { x: 0, y: 0, w: cw, h: ch, sourceW: srcW || 1 };
+
+  const scale = Math.min(cw / srcW, ch / srcH);
+  const w = srcW * scale;
+  const h = srcH * scale;
+
+  return { x: (cw - w) / 2, y: (ch - h) / 2, w, h, sourceW: srcW };
+}
+
 export function VideoCanvas() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
-  const { src, error } = useVideoSrc();
   const meta = useStore((s) => s.meta);
+  const streaming = meta?.streams_frames === true;
+  const { src, error } = useVideoSrc(!streaming);
   const lastFrameId = useStore((s) => s.lastFrameId);
 
   const [showTrails, setShowTrails] = useState(true);
@@ -86,15 +102,22 @@ export function VideoCanvas() {
     const tick = () => {
       raf = requestAnimationFrame(tick);
 
-      const video = videoRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas?.getContext("2d");
       const state = useStore.getState();
       const m = state.meta;
-      if (!video || !canvas || !ctx || !m) return;
+      if (!canvas || !ctx || !m) return;
 
-      // 1. keep the canvas exactly over the visible video content
-      const rect = contentRect(video);
+      const live = m.streams_frames === true ? liveFrame() : null;
+      const onWire = m.streams_frames === true;
+      const video = videoRef.current;
+      const wrap = wrapRef.current;
+      if (onWire ? !live || !wrap : !video) return;
+
+      // 1. keep the canvas exactly over the visible image
+      const rect = onWire
+        ? fitRect(wrap as HTMLDivElement, m.width, m.height)
+        : contentRect(video as HTMLVideoElement);
       canvas.style.left = `${rect.x}px`;
       canvas.style.top = `${rect.y}px`;
       canvas.style.width = `${rect.w}px`;
@@ -104,42 +127,48 @@ export function VideoCanvas() {
       if (canvas.width !== bw) canvas.width = bw;
       if (canvas.height !== bh) canvas.height = bh;
 
-      // 2. pace the video to the inference frontier
-      const frontierT = state.lastFrameId / m.fps;
-      const SAFE = 0.25;
-      const done = state.status === "done" || state.status === "error";
+      // 2. pace the video to the inference frontier. Solo cuando el cliente
+      //    reproduce el archivo: con los frames por el socket hay un reloj.
+      if (!onWire && video) {
+        const frontierT = state.lastFrameId / m.fps;
+        const SAFE = 0.25;
+        const done = state.status === "done" || state.status === "error";
 
-      if (syncRef.current && !done && state.lastFrameId > 0) {
-        if (
-          !video.paused &&
-          !autoPausedRef.current &&
-          video.currentTime >= frontierT - SAFE
-        ) {
-          programmaticRef.current = true;
-          video.pause();
-          autoPausedRef.current = true;
-          setWaiting(true);
-        } else if (
-          autoPausedRef.current &&
-          !userPausedRef.current &&
-          video.currentTime < frontierT - SAFE - 0.4
-        ) {
-          programmaticRef.current = true;
-          void video.play();
+        if (syncRef.current && !done && state.lastFrameId > 0) {
+          if (
+            !video.paused &&
+            !autoPausedRef.current &&
+            video.currentTime >= frontierT - SAFE
+          ) {
+            programmaticRef.current = true;
+            video.pause();
+            autoPausedRef.current = true;
+            setWaiting(true);
+          } else if (
+            autoPausedRef.current &&
+            !userPausedRef.current &&
+            video.currentTime < frontierT - SAFE - 0.4
+          ) {
+            programmaticRef.current = true;
+            void video.play();
+            autoPausedRef.current = false;
+            setWaiting(false);
+          }
+        } else if (autoPausedRef.current) {
           autoPausedRef.current = false;
           setWaiting(false);
-        }
-      } else if (autoPausedRef.current) {
-        autoPausedRef.current = false;
-        setWaiting(false);
-        if (!userPausedRef.current) {
-          programmaticRef.current = true;
-          void video.play();
+          if (!userPausedRef.current) {
+            programmaticRef.current = true;
+            void video.play();
+          }
         }
       }
 
       // 3. draw the result for the frame currently shown
-      const fid = Math.round(video.currentTime * m.fps);
+      const fid =
+        onWire && live
+          ? live.frameId
+          : Math.round((video?.currentTime ?? 0) * m.fps);
       setCurFrame(fid);
       const frame = state.frameAt(fid);
       const scale = canvas.width / (rect.sourceW || m.width);
@@ -173,6 +202,7 @@ export function VideoCanvas() {
         highlight,
         incidents: markers,
         roadRoi: showRoi ? m.road_roi : null,
+        background: live?.bitmap ?? null,
       });
 
       // Occupancy drifts every frame; only re-render when something the
@@ -218,8 +248,12 @@ export function VideoCanvas() {
 
   return (
     <div className="video-inner">
-      <div className="video-wrap">
-        {src ? (
+      <div className="video-wrap" ref={wrapRef}>
+        {streaming ? (
+          curFrame === 0 && (
+            <div className="video-placeholder">Conectando con la cámara…</div>
+          )
+        ) : src ? (
           <video
             ref={videoRef}
             className="video-el"
@@ -274,14 +308,16 @@ export function VideoCanvas() {
       </div>
 
       <div className="video-controls">
-        <button onClick={togglePlay}>
-          {playing ? (
-            <IconPause width={13} height={13} />
-          ) : (
-            <IconPlay width={13} height={13} />
-          )}
-          {playing ? "Pausa" : "Reproducir"}
-        </button>
+        {!streaming && (
+          <button onClick={togglePlay}>
+            {playing ? (
+              <IconPause width={13} height={13} />
+            ) : (
+              <IconPlay width={13} height={13} />
+            )}
+            {playing ? "Pausa" : "Reproducir"}
+          </button>
+        )}
         <label>
           <input
             type="checkbox"
@@ -307,14 +343,16 @@ export function VideoCanvas() {
           />
           Vía
         </label>
-        <label title="El video no adelanta a la inferencia (cajas siempre sincronizadas)">
-          <input
-            type="checkbox"
-            checked={sync}
-            onChange={(e) => setSync(e.target.checked)}
-          />
-          Sincronizar
-        </label>
+        {!streaming && (
+          <label title="El video no adelanta a la inferencia (cajas siempre sincronizadas)">
+            <input
+              type="checkbox"
+              checked={sync}
+              onChange={(e) => setSync(e.target.checked)}
+            />
+            Sincronizar
+          </label>
+        )}
         <span className="spacer" />
         <span className="frame-count">
           frame {curFrame}

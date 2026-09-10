@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { inferenceWsUrl, PROTOCOL_VERSION } from "../lib/config";
+import { clearLiveFrame, setLiveFrame } from "../lib/liveFrame";
 import { wsUrlWithToken } from "../lib/session";
 import type { StreamMessage } from "../lib/types";
 import { useStore } from "../state/store";
@@ -30,6 +31,7 @@ export function useInferenceSocket() {
 
     const store = useStore.getState();
     store.reset();
+    clearLiveFrame();
     store.setStatus("connecting");
 
     levelRef.current = null;
@@ -89,6 +91,7 @@ export function useInferenceSocket() {
           });
           break;
         case "frame":
+          if (msg.image) void setLiveFrame(msg.frame_id, msg.image);
           s.addFrame({
             frame_id: msg.frame_id,
             t: msg.t,
