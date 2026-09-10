@@ -22,13 +22,11 @@ export interface PanelBox {
 const RAIL = 208;
 
 const DEFAULTS: Record<PanelId, PanelBox> = {
-  incidents: { x: 228, y: 74, w: 320, h: 560, minimized: false, visible: true, z: 11 },
-  video: { x: 568, y: 74, w: 760, h: 540, minimized: false, visible: true, z: 12 },
-  details: { x: 568, y: 632, w: 760, h: 250, minimized: false, visible: true, z: 10 },
-  // Arranca oculto: es una herramienta de turno de revisión, no algo que el
-  // operador que solo mira el vivo necesite tapándole el video.
-  analysis: { x: 1348, y: 790, w: 460, h: 250, minimized: false, visible: true, z: 9 },
-  review: { x: 1348, y: 74, w: 460, h: 700, minimized: false, visible: false, z: 13 },
+  review: { x: 20, y: 86, w: 432, h: 576, minimized: false, visible: true, z: 11 },
+  video: { x: 468, y: 86, w: 948, h: 660, minimized: false, visible: true, z: 12 },
+  details: { x: 468, y: 762, w: 948, h: 252, minimized: false, visible: true, z: 10 },
+  incidents: { x: 1432, y: 86, w: 456, h: 512, minimized: false, visible: true, z: 11 },
+  analysis: { x: 1432, y: 614, w: 456, h: 398, minimized: false, visible: true, z: 9 },
 };
 
 const TOP_BAR = 60;
@@ -189,11 +187,12 @@ export const usePanels = create<PanelsStore>()(
     {
       name: "td-panels",
       // 3: apareció la barra de navegación y las posiciones por defecto se
-      // corrieron a su derecha. Las guardadas se descartan una vez, porque
-      // conservarlas dejaría los paneles debajo de la barra sin forma
-      // evidente de recuperarlos.
-      version: 3,
-      migrate: (persisted, version) => (version < 3 ? undefined : persisted),
+      // corrieron a su derecha.
+      // 4: disposición nueva, con los cinco paneles repartidos sin solaparse.
+      // Las guardadas se descartan una vez: conservarlas dejaría la pantalla
+      // como estaba y el cambio no se vería.
+      version: 4,
+      migrate: (persisted, version) => (version < 4 ? undefined : persisted),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<PanelsStore>;
         const panels = { ...current.panels };
