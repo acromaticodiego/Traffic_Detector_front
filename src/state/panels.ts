@@ -21,13 +21,59 @@ export interface PanelBox {
 /** Ancho de la barra de navegación. Los paneles no se meten debajo. */
 const RAIL = 208;
 
-const DEFAULTS: Record<PanelId, PanelBox> = {
-  review: { x: 20, y: 86, w: 432, h: 576, minimized: false, visible: true, z: 11 },
-  video: { x: 468, y: 86, w: 948, h: 660, minimized: false, visible: true, z: 12 },
-  details: { x: 468, y: 762, w: 948, h: 252, minimized: false, visible: true, z: 10 },
-  incidents: { x: 1432, y: 86, w: 456, h: 512, minimized: false, visible: true, z: 11 },
-  analysis: { x: 1432, y: 614, w: 456, h: 398, minimized: false, visible: true, z: 9 },
-};
+const GAP = 16;
+const MARGIN = 20;
+const TOP = 86;
+
+/**
+ * La disposición inicial, en proporción a la pantalla.
+ *
+ * En píxeles fijos no funciona: con el escalado de Windows o el zoom del
+ * navegador el viewport en píxeles CSS no es el de la pantalla, y una
+ * disposición pensada para 1920 se sale por la derecha.
+ *
+ * Tres columnas: el gestor a la izquierda, la cámara con su detalle debajo en
+ * el centro, y la lista en vivo con la lectura de IA a la derecha.
+ */
+export function defaultsFor(vw: number, vh: number): Record<PanelId, PanelBox> {
+  const W = vw - MARGIN * 2 - GAP * 2;
+  const H = vh - TOP - MARGIN;
+
+  const left = Math.round(W * 0.235);
+  const right = Math.round(W * 0.26);
+  const center = W - left - right;
+
+  const colA = MARGIN;
+  const colB = colA + left + GAP;
+  const colC = colB + center + GAP;
+
+  const videoH = Math.round(H * 0.645);
+  const incidentsH = Math.round(H * 0.545);
+
+  const box = (x: number, y: number, w: number, h: number, z: number) => ({
+    x,
+    y,
+    w,
+    h,
+    minimized: false,
+    visible: true,
+    z,
+  });
+
+  return {
+    // Termina antes del borde inferior: ahí abajo vive el menú de paneles.
+    review: box(colA, TOP, left, Math.round(H * 0.58), 11),
+    video: box(colB, TOP, center, videoH, 12),
+    details: box(colB, TOP + videoH + GAP, center, H - videoH - GAP, 10),
+    incidents: box(colC, TOP, right, incidentsH, 11),
+    analysis: box(colC, TOP + incidentsH + GAP, right, H - incidentsH - GAP, 9),
+  };
+}
+
+function currentDefaults(): Record<PanelId, PanelBox> {
+  if (typeof window === "undefined") return defaultsFor(1600, 900);
+  return defaultsFor(window.innerWidth, window.innerHeight);
+}
 
 const TOP_BAR = 60;
 
@@ -63,7 +109,7 @@ interface PanelsStore {
 export const usePanels = create<PanelsStore>()(
   persist(
     (set, get) => ({
-      panels: structuredClone(DEFAULTS),
+      panels: currentDefaults(),
       topZ: 12,
 
       move: (id, x, y) =>
@@ -181,7 +227,7 @@ export const usePanels = create<PanelsStore>()(
         } catch {
           /* ignore */
         }
-        set({ panels: structuredClone(DEFAULTS), topZ: 12 });
+        set({ panels: currentDefaults(), topZ: 12 });
       },
     }),
     {
@@ -191,8 +237,8 @@ export const usePanels = create<PanelsStore>()(
       // 4: disposición nueva, con los cinco paneles repartidos sin solaparse.
       // Las guardadas se descartan una vez: conservarlas dejaría la pantalla
       // como estaba y el cambio no se vería.
-      version: 4,
-      migrate: (persisted, version) => (version < 4 ? undefined : persisted),
+      version: 5,
+      migrate: (persisted, version) => (version < 5 ? undefined : persisted),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<PanelsStore>;
         const panels = { ...current.panels };

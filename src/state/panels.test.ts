@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { usePanels } from "./panels";
+import { defaultsFor, usePanels } from "./panels";
 
 beforeEach(() => {
   usePanels.getState().resetLayout();
@@ -116,5 +116,44 @@ describe("foco y visibilidad", () => {
     setVisible("incidents", true);
 
     expect(usePanels.getState().panels.incidents.minimized).toBe(false);
+  });
+});
+
+describe("disposición inicial", () => {
+  // Estaba en píxeles fijos pensados para 1920 y con el escalado de Windows
+  // el viewport en CSS es más estrecho: los paneles se salían por la derecha.
+  const tamaños: [number, number][] = [
+    [1920, 1080],
+    [1548, 837],
+    [1366, 768],
+    [2560, 1440],
+  ];
+
+  it.each(tamaños)("cabe entera en %ix%i", (vw, vh) => {
+    for (const box of Object.values(defaultsFor(vw, vh))) {
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.y).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.w).toBeLessThanOrEqual(vw);
+      expect(box.y + box.h).toBeLessThanOrEqual(vh);
+      expect(box.w).toBeGreaterThan(0);
+      expect(box.h).toBeGreaterThan(0);
+    }
+  });
+
+  it.each(tamaños)("no se solapan en %ix%i", (vw, vh) => {
+    const cajas = Object.values(defaultsFor(vw, vh));
+
+    for (let i = 0; i < cajas.length; i++) {
+      for (let j = i + 1; j < cajas.length; j++) {
+        const a = cajas[i];
+        const b = cajas[j];
+        const solapa =
+          a.x < b.x + b.w &&
+          b.x < a.x + a.w &&
+          a.y < b.y + b.h &&
+          b.y < a.y + a.h;
+        expect(solapa).toBe(false);
+      }
+    }
   });
 });
