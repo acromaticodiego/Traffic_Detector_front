@@ -1,6 +1,7 @@
 import { usePanels, type PanelId } from "../state/panels";
 import { useView } from "../state/view";
 import {
+  IconAI,
   IconChevronDown,
   IconCone,
   IconEye,
@@ -20,6 +21,11 @@ const ITEMS: { id: PanelId; label: string; icon: JSX.Element }[] = [
     id: "details",
     label: "Detalle",
     icon: <IconCone width={15} height={15} />,
+  },
+  {
+    id: "analysis",
+    label: "Lectura IA",
+    icon: <IconAI width={15} height={15} />,
   },
   {
     id: "review",

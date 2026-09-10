@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useStore } from "../state/store";
 import { useReview } from "../state/review";
-import { useAuth } from "../state/auth";
 import { incidentType, severity } from "../lib/incidents";
 import { describeIncident, detectionCount, type Fact } from "../lib/incidentData";
 import { statusInfo, timeAgo } from "../lib/review";
 import type { StoredIncident } from "../lib/types";
-import { IconAI, IconGauge, IconRefresh, IconScan, IconSiren } from "./icons";
+import { IconGauge, IconScan, IconSiren } from "./icons";
 
 /**
  * Panel de detalle.
@@ -60,14 +59,8 @@ export function IncidentDetails() {
 }
 
 function StoredDetail({ incident }: { incident: StoredIncident }) {
-  const summarize = useReview((s) => s.summarize);
-  const summarizing = useReview((s) => s.summarizing);
-  const summaryError = useReview((s) => s.summaryError);
-
   const sev = severity(incident.confidence);
   const estado = statusInfo(incident.review_status);
-  const busy = summarizing === incident.id;
-  const puedeResumir = useAuth((s) => s.can("incidents:summarize"));
 
   return (
     <div className="detail">
@@ -83,49 +76,6 @@ function StoredDetail({ incident }: { incident: StoredIncident }) {
 
       <Facts facts={describeIncident(incident.data)} data={incident.data} />
 
-      <section className="detail-ai">
-        <h3>
-          <IconAI width={14} height={14} />
-          <span>Lectura del caso</span>
-          {incident.ai_summary && (
-            <button
-              className="detail-regen"
-              onClick={() => void summarize(incident.id, true)}
-              disabled={busy}
-              title="Volver a generar"
-            >
-              <IconRefresh width={12} height={12} />
-            </button>
-          )}
-        </h3>
-
-        {incident.ai_summary ? (
-          <>
-            <p className="detail-summary">{incident.ai_summary}</p>
-            <p className="detail-disclaimer">
-              Generado por {incident.ai_model ?? "IA"} a partir de la imagen y
-              los datos. Es material para tu decisión, no la decisión.
-            </p>
-          </>
-        ) : !puedeResumir ? (
-          <p className="detail-disclaimer">
-            Aún no se ha analizado este caso. Generarlo requiere el rol de
-            analista o administrador.
-          </p>
-        ) : (
-          <>
-            <button
-              className="detail-generate"
-              onClick={() => void summarize(incident.id)}
-              disabled={busy}
-            >
-              <IconAI width={14} height={14} />
-              <span>{busy ? "Analizando la imagen…" : "Analizar el caso"}</span>
-            </button>
-            {summaryError && <p className="detail-aierror">{summaryError}</p>}
-          </>
-        )}
-      </section>
     </div>
   );
 }

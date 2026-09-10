@@ -1,7 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type PanelId = "video" | "incidents" | "details" | "review";
+export type PanelId =
+  | "video"
+  | "incidents"
+  | "details"
+  | "analysis"
+  | "review";
 
 export interface PanelBox {
   x: number;
@@ -22,6 +27,7 @@ const DEFAULTS: Record<PanelId, PanelBox> = {
   details: { x: 568, y: 632, w: 760, h: 250, minimized: false, visible: true, z: 10 },
   // Arranca oculto: es una herramienta de turno de revisión, no algo que el
   // operador que solo mira el vivo necesite tapándole el video.
+  analysis: { x: 1348, y: 790, w: 460, h: 250, minimized: false, visible: true, z: 9 },
   review: { x: 1348, y: 74, w: 460, h: 700, minimized: false, visible: false, z: 13 },
 };
 

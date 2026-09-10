@@ -4,6 +4,7 @@ import { useHeartbeat } from "./hooks/useHeartbeat";
 import { StatusBar } from "./components/StatusBar";
 import { VideoCanvas } from "./components/VideoCanvas";
 import { IncidentList } from "./components/IncidentList";
+import { CaseAnalysis } from "./components/CaseAnalysis";
 import { IncidentDetails } from "./components/IncidentDetails";
 import { ReviewPanel } from "./components/ReviewPanel";
 import { MapBackground } from "./components/MapBackground";
@@ -13,7 +14,13 @@ import { LogDrawer } from "./components/LogDrawer";
 import { Sidebar } from "./components/Sidebar";
 import { DashboardView } from "./components/views/DashboardView";
 import { AdminView } from "./components/views/AdminView";
-import { IconCone, IconEye, IconReview, IconSiren } from "./components/icons";
+import {
+  IconAI,
+  IconCone,
+  IconEye,
+  IconReview,
+  IconSiren,
+} from "./components/icons";
 import { useStore } from "./state/store";
 import { useCameras } from "./state/cameras";
 import { usePanels } from "./state/panels";
@@ -149,6 +156,14 @@ function Console({ hidden }: { hidden: boolean }) {
         icon={<IconCone width={14} height={14} />}
       >
         <IncidentDetails />
+      </FloatingPanel>
+
+      <FloatingPanel
+        id="analysis"
+        title="Lectura del caso"
+        icon={<IconAI width={14} height={14} />}
+      >
+        <CaseAnalysis />
       </FloatingPanel>
 
       <FloatingPanel
