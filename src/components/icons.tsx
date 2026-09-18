@@ -39,6 +39,7 @@ export {
   Route as IconRoute,
   ScanEye as IconScan,
   Sparkles as IconAI,
+  Sparkles as IconSparkles,
   CarFront as IconCarFront,
   Bike as IconBike,
   PersonStanding as IconPerson,
@@ -52,4 +53,18 @@ export {
   LayoutDashboard as IconDashboard,
   UsersRound as IconUsers,
   ChevronDown as IconChevronDown,
+  // Métricas y dashboard amigable
+  Clock as IconClock,
+  Target as IconTarget,
+  Wifi as IconWifi,
+  WifiOff as IconWifiOff,
+  Search as IconSearch,
+  Filter as IconFilter,
+  ArrowUpRight as IconArrowUpRight,
+  CheckCircle2 as IconCheckCircle,
+  XCircle as IconXCircle,
+  Calendar as IconCalendar,
+  TrendingUp as IconTrendingUp,
+  UserCheck as IconUserCheck,
 } from "lucide-react";
+
