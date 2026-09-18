@@ -55,6 +55,16 @@
   --iris: #9d6fd9;
   --iris-soft: rgba(157, 111, 217, 0.16);
 
+  /* Cian decorativo. Mismo contrato que el iris: adorna, nunca codifica un
+     dato. Existe para que el dashboard pueda dar identidad propia a cada
+     tarjeta sin repetir cuatro veces el mismo acero y sin tocar la mostaza
+     ni la terracota, que aquí significan precaución y alarma.
+
+     No se usa junto al verde en una misma gráfica: comparten familia fría y
+     a poca saturación se confunden. El verde sigue siendo solo "en vivo". */
+  --aqua: #3fb2c4;
+  --aqua-soft: rgba(63, 178, 196, 0.16);
+
   --grad-accent: linear-gradient(135deg, #5e90b8, #9d6fd9);
   --grad-tile: linear-gradient(
     158deg,
@@ -2124,10 +2134,15 @@ button.ghost {
 }
 
 .dash-hero-title-group h2 {
-  margin: 0 0 8px;
-  font-size: 22px;
+  margin: 0 0 10px;
+  /* El h2 global va en versalitas de 11 px porque casi siempre rotula una
+     seccion. Este es un saludo, no un rotulo: hay que apagar la caja alta
+     heredada o el nombre de quien entra aparece gritado. */
+  text-transform: none;
+  font-size: clamp(20px, 2.2vw, 27px);
+  line-height: 1.25;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   color: var(--text);
   display: flex;
   align-items: center;
@@ -2639,7 +2654,7 @@ button.ghost {
 }
 
 .verdict-dot.descartado {
-  background: #66849b;
+  background: #4a90c8;
 }
 
 /* ---------- Tablas y Filtros ---------- */
@@ -3771,4 +3786,603 @@ button:disabled {
 }
 .grid tbody tr:hover {
   background: rgba(255, 255, 255, 0.04);
+}
+
+
+/* ============================================================
+   Dashboard: corrección de armado y capa de color
+
+   Dos arreglos de bulto y una pasada de color. Van al final a propósito,
+   igual que la sección de "material": son una capa que se apoya en las
+   reglas de arriba en vez de reescribirlas.
+   ============================================================ */
+
+/* ---------- el hero se comía a sí mismo ----------
+   El contenedor del dashboard es UN solo elemento con dos sombreros:
+   `.view` le da `flex: 1; min-height: 0; overflow: auto` —o sea, altura
+   definida y scroll— y `.dash` lo convierte además en columna flex.
+
+   Un contenedor flex con altura definida y contenido más alto reparte el
+   recorte entre sus hijos. Casi todos están protegidos por su tamaño mínimo
+   automático, pero `.dash-hero` lleva `overflow: hidden`, y eso anula ese
+   mínimo y lo deja encogerse hasta cero. Resultado: el hero absorbía el
+   recorte de TODA la página, se aplastaba a una franja y cortaba el saludo
+   y la fila de "En turno activo", que simplemente no llegaban a verse.
+
+   En una columna que scrollea nada debe encogerse: desbordar es justo lo
+   que se quiere, porque para eso hay barra de desplazamiento. */
+.dash > * {
+  flex-shrink: 0;
+}
+
+/* ---------- el mapa deja de atravesar los datos ----------
+   El mapa de fondo está pensado para la consola, donde los paneles flotan
+   sobre él y el color del mapa los tiñe. El dashboard es texto denso y
+   tablas: con las calles pasando por debajo de cada cifra, los márgenes
+   quedaban en mapa crudo y el conjunto parecía un fallo de pintado.
+
+   Un velo, no una tapa. Deja intuir el mapa —la aplicación sigue siendo de
+   monitoreo vial— pero le baja el contraste lo justo para que mande el
+   dato. */
+.dash::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(9, 32, 52, 0.72), transparent 70%),
+    linear-gradient(
+      180deg,
+      rgba(4, 18, 31, 0.88) 0%,
+      rgba(4, 18, 31, 0.78) 45%,
+      rgba(4, 18, 31, 0.9) 100%
+    );
+}
+
+/* ---------- hero: más aire y color propio ---------- */
+.dash-hero {
+  padding: 26px 28px;
+  border-color: rgba(94, 144, 184, 0.3);
+  background:
+    linear-gradient(135deg, rgba(157, 111, 217, 0.14) 0%, transparent 42%),
+    linear-gradient(145deg, rgba(16, 44, 68, 0.92) 0%, rgba(7, 27, 44, 0.94) 100%);
+}
+
+/* La franja superior en degradado es lo que da identidad a la cabecera de
+   un vistazo: recorre las tres familias frías de la paleta y ancla el resto
+   de acentos que aparecen más abajo en las tarjetas. */
+.dash-hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand), var(--iris) 45%, var(--aqua) 100%);
+  opacity: 0.9;
+}
+
+/* El halo de la esquina respira. Muy lento y muy tenue: en una pantalla de
+   turno completo, un fondo que se nota es una distracción; este solo tiene
+   que impedir que la cabecera parezca una captura. */
+.dash-hero::after {
+  width: 420px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(157, 111, 217, 0.2), transparent 70%),
+    radial-gradient(circle at 70% 120%, rgba(63, 178, 196, 0.12), transparent 70%);
+  animation: hero-glow 18s var(--ease) infinite alternate;
+}
+
+@keyframes hero-glow {
+  from {
+    opacity: 0.75;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(-14px, 6px, 0);
+  }
+}
+
+/* El nombre de quien entra, en el degradado de marca. Es el único texto de
+   la pantalla que lo lleva: si lo llevaran dos, dejaría de señalar nada. */
+.dash-hero-title-group h2 > span:first-child {
+  background: linear-gradient(100deg, var(--text) 0%, #bfe0f5 55%, #d5c2f2 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dash-hero-badge-role {
+  background: var(--grad-accent);
+  border-color: rgba(190, 218, 240, 0.34);
+  color: #f2f7fc;
+  box-shadow: 0 2px 10px rgba(94, 144, 184, 0.3);
+}
+
+/* ---------- tarjetas de métrica: una familia de color cada una ----------
+   Cuatro tarjetas idénticas en gris obligan a leer el rótulo para saber cuál
+   se está mirando. Con un acento propio cada una se reconoce por el sitio y
+   el color, y el rótulo pasa a confirmar en vez de a informar.
+
+   El acento es identidad de la tarjeta, no valor del dato: las dos que SÍ
+   codifican un estado —validez y estabilidad— reciben su variante desde el
+   componente (good / warn / bad) y ahí el color sí significa algo. */
+.tile {
+  position: relative;
+  overflow: hidden;
+  --tile-accent: var(--brand);
+  --tile-accent-soft: var(--brand-soft);
+  --tile-accent-glow: rgba(94, 144, 184, 0.28);
+  background-image:
+    radial-gradient(90% 120% at 100% 0%, var(--tile-accent-soft), transparent 65%),
+    var(--grad-tile);
+}
+
+.tile.iris {
+  --tile-accent: var(--iris);
+  --tile-accent-soft: var(--iris-soft);
+  --tile-accent-glow: rgba(157, 111, 217, 0.3);
+}
+.tile.aqua {
+  --tile-accent: var(--aqua);
+  --tile-accent-soft: var(--aqua-soft);
+  --tile-accent-glow: rgba(63, 178, 196, 0.3);
+}
+.tile.good {
+  --tile-accent: var(--good);
+  --tile-accent-soft: rgba(61, 220, 132, 0.14);
+  --tile-accent-glow: rgba(61, 220, 132, 0.28);
+}
+.tile.warn {
+  --tile-accent: var(--warn);
+  --tile-accent-soft: rgba(213, 160, 60, 0.14);
+  --tile-accent-glow: rgba(213, 160, 60, 0.3);
+}
+.tile.bad {
+  --tile-accent: var(--bad);
+  --tile-accent-soft: rgba(217, 113, 78, 0.14);
+  --tile-accent-glow: rgba(217, 113, 78, 0.3);
+}
+
+/* Filo de color arriba. Tres píxeles bastan: es lo bastante para identificar
+   y lo bastante poco para no competir con la cifra, que es lo que hay que
+   leer. */
+.tile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--tile-accent), transparent 85%);
+  opacity: 0.85;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.tile:hover {
+  border-color: var(--tile-accent-glow);
+  box-shadow: var(--shadow-lift), var(--sheen), 0 0 0 1px var(--tile-accent-glow);
+}
+.tile:hover::before {
+  opacity: 1;
+}
+
+/* La caja del icono hereda el acento de su tarjeta, así no hay que mantener
+   dos listas de variantes en paralelo. */
+.tile-icon-box,
+.tile-icon-box.iris,
+.tile-icon-box.aqua,
+.tile-icon-box.good,
+.tile-icon-box.warn,
+.tile-icon-box.bad {
+  background: var(--tile-accent-soft);
+  color: var(--tile-accent);
+  border-color: var(--tile-accent-glow);
+}
+
+.tile-value {
+  font-size: 30px;
+  letter-spacing: -0.02em;
+}
+
+.tile-meter-fill {
+  background: linear-gradient(
+    90deg,
+    var(--tile-accent),
+    color-mix(in srgb, var(--tile-accent) 55%, white)
+  );
+  box-shadow: 0 0 10px var(--tile-accent-glow);
+}
+
+/* ---------- gráficas: cada serie con su color ----------
+   Dos gráficas en el mismo azul se leen como la misma serie partida en dos.
+   Distinguirlas por color deja claro que son magnitudes distintas. */
+.chart {
+  position: relative;
+  overflow: hidden;
+  --chart-accent: var(--brand);
+  --chart-accent-2: #6ca1c9;
+  --chart-accent-glow: rgba(94, 144, 184, 0.28);
+  background-image:
+    radial-gradient(90% 120% at 100% 0%, var(--chart-accent-glow), transparent 70%),
+    var(--grad-tile);
+}
+
+/* Ojo: esto cambia el CROMO de la tarjeta (filo, halo, icono), nunca las
+   barras. La cabecera de esta hoja lo deja escrito: el iris y el acero se
+   separan 5.6 en deuteranopía, así que como color de dato serían la misma
+   barra para mucha gente. Las dos gráficas son de una sola serie cada una y
+   se distinguen por título e icono, que es identificación que no depende de
+   poder ver el color. */
+.chart.accent-iris {
+  --chart-accent: var(--iris);
+  --chart-accent-glow: rgba(157, 111, 217, 0.3);
+}
+
+.chart::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--chart-accent), transparent 85%);
+  opacity: 0.8;
+}
+
+.chart:hover {
+  border-color: var(--chart-accent-glow);
+}
+
+.chart-icon {
+  background: var(--chart-accent-glow);
+  color: var(--chart-accent);
+  border: 1px solid var(--chart-accent-glow);
+}
+
+.chart-bar {
+  background: linear-gradient(180deg, var(--chart-accent-2) 0%, var(--brand) 100%);
+  border-radius: 4px 4px 0 0;
+}
+
+.chart-col:hover .chart-bar,
+.chart-col.on .chart-bar {
+  background: linear-gradient(180deg, #ffffff 0%, var(--chart-accent-2) 100%);
+  box-shadow: 0 0 14px rgba(94, 144, 184, 0.45);
+}
+
+/* ---------- veredictos: la barra dice de qué color es cada parte ---------- */
+.split-fill.confirmado {
+  background: linear-gradient(90deg, var(--terracotta), #e08363);
+}
+.split-fill.descartado {
+  background: linear-gradient(90deg, #3b76a6, #4a90c8);
+}
+
+.verdict-row > strong {
+  background: var(--grad-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ---------- el filtro activo, en el degradado de marca ---------- */
+.filter-chip.active {
+  background: var(--grad-accent);
+  box-shadow: 0 2px 10px rgba(94, 144, 184, 0.35);
+}
+
+/* ---------- pantallas estrechas ----------
+   La hoja no tenía una sola media query: el dashboard se diseñó a un ancho
+   y por debajo de él las acciones del hero se salían de la tarjeta. */
+@media (max-width: 900px) {
+  .view {
+    padding: 16px;
+  }
+
+  .dash-hero {
+    padding: 20px 18px;
+  }
+
+  /* Las acciones bajan a su propia línea y se estiran. Apretadas junto al
+     saludo quedaban en dos filas irregulares y el botón principal perdía el
+     sitio de honor. */
+  .dash-hero-main {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dash-hero-actions {
+    width: 100%;
+  }
+
+  .dash-hero-actions .select,
+  .dash-hero-actions .btn-primary-action,
+  .dash-hero-actions .ghost {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .tiles,
+  .charts,
+  .dash-split {
+    grid-template-columns: 1fr;
+  }
+
+  .tile-value {
+    font-size: 26px;
+  }
+}
+
+/* El halo del hero entra en el mismo trato que el resto del movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .dash-hero::after {
+    animation: none;
+  }
+}
+
+
+/* ============================================================
+   Dashboard: reparto de la información
+
+   El tablero dejó de ser una pila de bandas del mismo ancho. Ahora cada
+   franja responde una pregunta —quién soy, cómo va el día, cómo viene la
+   racha, qué pasó fila por fila— y la que necesita dos lecturas en paralelo
+   (la racha y la calidad del modelo) va en rejilla, no apilada.
+   ============================================================ */
+
+/* ---------- cabecera: ficha de persona, no rótulo de sección ---------- */
+.dash-hero-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dash-avatar {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  flex: none;
+  border-radius: 16px;
+  background: var(--grad-accent);
+  border: 1px solid rgba(190, 218, 240, 0.28);
+  box-shadow: 0 6px 18px rgba(94, 144, 184, 0.32), var(--sheen);
+  color: #f4f9ff;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* El grupo de título puede encogerse; el disco no. Sin esto, un nombre largo
+   aplasta el avatar hasta volverlo un óvalo. */
+.dash-hero-title-group {
+  min-width: 0;
+}
+
+/* ---------- la banda central: racha ancha + calidad estrecha ----------
+   2fr/1fr y no mitades: las barras necesitan ancho para que catorce días no
+   se conviertan en catorce rayas, y el panel de calidad es una cifra grande
+   con su desglose, que se lee igual de bien en columna estrecha. */
+.dash-main {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.dash-main-charts {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* ---------- panel de calidad ---------- */
+.quality-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+.quality-card .card-header-bar {
+  margin-bottom: 0;
+}
+
+.quality-ring-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.quality-summary {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  max-width: 30ch;
+}
+
+/* El anillo. Es un medidor de un solo arco sobre pista neutra: cuánto se ha
+   llenado de 100. Ver la nota de RingMeter.tsx sobre por qué no es una tarta
+   partida en dos. */
+.ring {
+  position: relative;
+  flex: none;
+}
+
+.ring-track {
+  stroke: rgba(190, 218, 240, 0.1);
+}
+
+.ring-fill {
+  /* Se dibuja al entrar. El gesto dice de dónde sale la cifra del centro;
+     apareciendo entera, el anillo parece un adorno impreso detrás. */
+  animation: ring-draw 0.9s var(--ease) backwards;
+  filter: drop-shadow(0 0 6px rgba(94, 144, 184, 0.45));
+  transition: stroke-dasharray var(--dur-slow) var(--ease);
+}
+
+@keyframes ring-draw {
+  from {
+    stroke-dasharray: 0 9999;
+  }
+}
+
+.ring-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.ring-center strong {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  background: var(--grad-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.ring-center span {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-mute);
+}
+
+/* La leyenda en columna: en fila, las tres etiquetas y sus tres números se
+   entremezclan y hay que contar para saber qué cifra es de quién. */
+.quality-legend {
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.quality-legend li {
+  gap: 9px;
+}
+
+/* El número se va al borde derecho para que los tres queden alineados en
+   columna y se puedan comparar sin leerlos. */
+.quality-legend li strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.verdict-dot.archivado {
+  background: var(--text-mute);
+}
+
+.quality-total {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+
+.quality-total-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.quality-total-head strong {
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.quality-total p,
+.quality-foot {
+  margin: 0;
+}
+
+.quality-foot {
+  margin-top: auto;
+}
+
+/* ---------- el contador en marcha, en verde de "en vivo" ---------- */
+.chip-stat.live {
+  background: rgba(61, 220, 132, 0.14);
+  color: var(--good);
+  font-weight: 600;
+  padding: 2px 8px;
+}
+
+.chip-stat.live .pulse-dot {
+  width: 6px;
+  height: 6px;
+}
+
+/* ---------- esqueletos con la forma nueva ---------- */
+.skeleton-hero {
+  height: 104px;
+  border-radius: var(--r);
+}
+
+.skeleton-side {
+  height: 100%;
+  min-height: 320px;
+  border-radius: var(--r);
+}
+
+/* ---------- pantallas estrechas ----------
+   Por debajo de ~1050 px la columna de calidad deja de caber sin estrujar
+   las barras, así que pasa a ocupar el ancho completo debajo de ellas. */
+@media (max-width: 1050px) {
+  .dash-main {
+    grid-template-columns: 1fr;
+  }
+
+  .quality-card {
+    height: auto;
+  }
+
+  /* A lo ancho, el anillo y su desglose se leen mejor uno al lado del otro
+     que apilados, que dejaría un panel muy alto y medio vacío. */
+  .quality-ring-wrap {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 18px;
+  }
+
+  .quality-summary {
+    max-width: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .dash-hero-identity {
+    gap: 12px;
+  }
+
+  .dash-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+    border-radius: 13px;
+  }
+
+  .quality-ring-wrap {
+    flex-direction: column;
+    text-align: center;
+  }
 }

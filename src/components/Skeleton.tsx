@@ -23,6 +23,8 @@ export function DashboardSkeleton() {
         Cargando la analítica del turno.
       </p>
 
+      <Skeleton className="skeleton-hero" />
+
       <div className="tiles">
         <Skeleton className="skeleton-tile" />
         <Skeleton className="skeleton-tile" />
@@ -30,9 +32,16 @@ export function DashboardSkeleton() {
         <Skeleton className="skeleton-tile" />
       </div>
 
-      <div className="charts">
-        <Skeleton className="skeleton-chart" />
-        <Skeleton className="skeleton-chart" />
+      {/* Mismo reparto que el dashboard ya montado: columna ancha de
+          graficas y panel de calidad al lado. Un esqueleto con otra forma
+          que la pantalla final produce un salto al llegar los datos, que es
+          justo lo que se queria evitar. */}
+      <div className="dash-main">
+        <div className="dash-main-charts">
+          <Skeleton className="skeleton-chart" />
+          <Skeleton className="skeleton-chart" />
+        </div>
+        <Skeleton className="skeleton-side" />
       </div>
 
       <div className="card">
