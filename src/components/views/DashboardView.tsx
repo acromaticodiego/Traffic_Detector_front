@@ -11,6 +11,7 @@ import {
 import { statusInfo } from "../../lib/review";
 import type { ReviewStatus } from "../../lib/types";
 import { DayBars } from "../charts/DayBars";
+import { RingMeter } from "../charts/RingMeter";
 import { DashboardSkeleton } from "../Skeleton";
 import {
   IconRefresh,
@@ -27,7 +28,6 @@ import {
   IconSearch,
   IconUsers,
   IconCalendar,
-  IconSparkles,
   IconReview,
 } from "../icons";
 
@@ -52,7 +52,7 @@ function getGreeting(name: string): string {
   else if (hora >= 12 && hora < 19) saludo = "¡Buenas tardes";
 
   const primerNombre = name.trim().split(" ")[0] || "Operador";
-  return `${saludo}, ${primerNombre}`;
+  return `${saludo}, ${primerNombre}!`;
 }
 
 function getInitials(name: string): string {
@@ -81,6 +81,16 @@ function formatFechaAmigable(iso: string | null): string {
   return `${d.toLocaleDateString([], { day: "2-digit", month: "short" })}, ${hora}`;
 }
 
+/**
+ * El tablero de un operador.
+ *
+ * El orden de arriba abajo es el de las preguntas que alguien se hace al
+ * sentarse: quién soy y si estoy en turno, cómo va el día en cuatro cifras,
+ * cómo viene la racha de dos semanas y qué tal está acertando el modelo, y
+ * solo al final el detalle fila por fila. Cada banda responde una pregunta;
+ * si una banda necesita dos vistazos para saber de qué habla, está mal
+ * puesta.
+ */
 export function DashboardView() {
   const data = useAnalytics((s) => s.data);
   const team = useAnalytics((s) => s.team);
@@ -159,36 +169,46 @@ export function DashboardView() {
 
   return (
     <div className="view dash">
-      {/* ── Banner de bienvenida amigable (Hero) ── */}
+      {/* ── 1. Quién está sentado y qué puede hacer ── */}
       <section className="dash-hero">
         <div className="dash-hero-main">
-          <div className="dash-hero-title-group">
-            <h2>
-              <span>{getGreeting(nombreUsuario)}</span>
-              <span className="dash-hero-badge-role">{data.user.role}</span>
-            </h2>
-            <div className="dash-hero-status-row">
-              <span className={enTurno ? "shift-pill on" : "shift-pill"}>
-                {enTurno ? (
-                  <>
-                    <span className="pulse-dot" />
-                    <strong>En turno activo</strong>
-                  </>
-                ) : (
-                  "Fuera de turno"
-                )}
-              </span>
-              {data.shift ? (
-                <span className="muted">
-                  iniciado a las{" "}
-                  {new Date(data.shift.started_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+          <div className="dash-hero-identity">
+            {/* La inicial en un disco es lo que convierte la cabecera en la
+                ficha de una persona y no en un rótulo de sección. */}
+            <span className="dash-avatar" aria-hidden="true">
+              {getInitials(nombreUsuario)}
+            </span>
+
+            <div className="dash-hero-title-group">
+              <h2>
+                <span>{getGreeting(nombreUsuario)}</span>
+                <span className="dash-hero-badge-role">{data.user.role}</span>
+              </h2>
+              <div className="dash-hero-status-row">
+                <span className={enTurno ? "shift-pill on" : "shift-pill"}>
+                  {enTurno ? (
+                    <>
+                      <span className="pulse-dot" />
+                      <strong>En turno activo</strong>
+                    </>
+                  ) : (
+                    "Fuera de turno"
+                  )}
                 </span>
-              ) : (
-                <span className="muted">Inicia sesión o abre la consola para registrar actividad</span>
-              )}
+                {data.shift ? (
+                  <span className="muted">
+                    iniciado a las{" "}
+                    {new Date(data.shift.started_at).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                ) : (
+                  <span className="muted">
+                    Abre la consola para registrar actividad
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -235,7 +255,7 @@ export function DashboardView() {
         </div>
       </section>
 
-      {/* ── Tarjetas de métricas clave (KPIs) ── */}
+      {/* ── 2. El día en cuatro cifras ── */}
       <section className="tiles">
         <Tile
           label="Tiempo activo hoy"
@@ -244,8 +264,9 @@ export function DashboardView() {
           variant="iris"
           hint={
             enTurno ? (
-              <span className="chip-stat" style={{ color: "var(--good)" }}>
-                ● Contador en marcha
+              <span className="chip-stat live">
+                <span className="pulse-dot" />
+                Contador en marcha
               </span>
             ) : hoy.shifts === 1 ? (
               "1 turno completado"
@@ -259,7 +280,7 @@ export function DashboardView() {
           label="Incidentes revisados hoy"
           value={String(hoy.reviewed)}
           icon={<IconReview width={18} height={18} />}
-          variant="default"
+          variant="aqua"
           hint={
             hoy.reviewed === 0 ? (
               "Aún sin revisiones registradas"
@@ -318,51 +339,48 @@ export function DashboardView() {
         />
       </section>
 
-      {/* ── Gráficas de los últimos 14 días ── */}
-      <section className="charts">
-        <DayBars
-          title="Tiempo activo"
-          hint="Histórico de los últimos 14 días"
-          icon={<IconClock width={15} height={15} />}
-          data={data.series.map((d) => ({
-            date: d.date,
-            value: d.active_seconds,
-          }))}
-          format={duracion}
-        />
-        <DayBars
-          title="Incidentes revisados"
-          hint="Histórico de los últimos 14 días"
-          icon={<IconReview width={15} height={15} />}
-          data={data.series.map((d) => ({ date: d.date, value: d.reviewed }))}
-          format={(v) => `${v}`}
-        />
+      {/* ── 3. La racha de dos semanas, con la calidad del modelo al lado ──
+          Van juntas en una rejilla y no apiladas a lo ancho porque se leen
+          en pareja: las barras dicen cuánto se trabajó y el anillo, de todo
+          eso, cuánto valió la pena. Separadas por media pantalla de scroll
+          esa relación se pierde. */}
+      <section className="dash-main">
+        <div className="dash-main-charts">
+          <DayBars
+            title="Tiempo activo"
+            hint="Últimos 14 días"
+            icon={<IconClock width={15} height={15} />}
+            accent="brand"
+            data={data.series.map((d) => ({
+              date: d.date,
+              value: d.active_seconds,
+            }))}
+            format={duracion}
+          />
+          <DayBars
+            title="Incidentes revisados"
+            hint="Últimos 14 días"
+            icon={<IconReview width={15} height={15} />}
+            accent="iris"
+            data={data.series.map((d) => ({ date: d.date, value: d.reviewed }))}
+            format={(v) => `${v}`}
+          />
+        </div>
+
+        <CalidadPanel semana={data.week} total={data.total} />
       </section>
 
-      {/* ── Veredictos: Calidad de detección ── */}
-      <section className="dash-split">
-        <Veredictos
-          titulo="Rendimiento de esta semana"
-          bloque={data.week}
-          icono={<IconSparkles width={16} height={16} style={{ color: "var(--iris)" }} />}
-        />
-        <Veredictos
-          titulo="Rendimiento histórico acumulado"
-          bloque={data.total}
-          icono={<IconTarget width={16} height={16} style={{ color: "var(--brand)" }} />}
-        />
-      </section>
-
-      {/* ── Supervisión de Equipo (si tiene permisos) ── */}
+      {/* ── 4. El equipo, para quien lo supervisa ── */}
       {puedeVerATodos && team && (
         <section className="card">
           <div className="card-header-bar">
             <h3>
               <IconUsers width={16} height={16} />
-              <span>Supervisión de Equipo</span>
+              <span>Supervisión de equipo</span>
             </h3>
             <span className="pill-metric">
-              {team.filter((f) => f.on_shift).length} de {team.length} en turno ahora
+              <strong>{team.filter((f) => f.on_shift).length}</strong> de{" "}
+              {team.length} en turno ahora
             </span>
           </div>
 
@@ -428,7 +446,7 @@ export function DashboardView() {
         </section>
       )}
 
-      {/* ── Últimos registros con buscador y filtros ── */}
+      {/* ── 5. El detalle, fila por fila ── */}
       <section className="card">
         <div className="card-header-bar">
           <h3>
@@ -437,7 +455,6 @@ export function DashboardView() {
           </h3>
 
           <div className="filter-controls">
-            {/* Buscador */}
             <div className="search-input-wrap">
               <IconSearch width={13} height={13} />
               <input
@@ -449,7 +466,6 @@ export function DashboardView() {
               />
             </div>
 
-            {/* Chips de filtro por veredicto */}
             <div className="filter-chips">
               <button
                 className={`filter-chip ${filtroEstado === "todos" ? "active" : ""}`}
@@ -576,7 +592,6 @@ export function DashboardView() {
         )}
       </section>
 
-      {/* ── Pie de información ── */}
       <footer className="dash-foot">
         <IconCalendar width={13} height={13} />
         <span>
@@ -600,14 +615,18 @@ function Tile({
   value: string;
   hint: React.ReactNode;
   icon?: React.ReactNode;
-  variant?: "default" | "iris" | "good" | "warn" | "bad";
+  variant?: "default" | "iris" | "aqua" | "good" | "warn" | "bad";
   meterValue?: number | null;
 }) {
+  // La variante va en la TARJETA, no solo en el icono: de ahí salen por
+  // variable CSS el filo de color, el tinte del fondo y el halo al pasar por
+  // encima, y así el acento se define una vez por tarjeta en vez de repetirse
+  // en cada pieza.
   return (
-    <div className="tile">
+    <div className={`tile ${variant}`}>
       <div className="tile-top">
         <span className="tile-label">{label}</span>
-        {icon && <div className={`tile-icon-box ${variant}`}>{icon}</div>}
+        {icon && <div className="tile-icon-box">{icon}</div>}
       </div>
       <strong className="tile-value">{value}</strong>
       <div className="tile-hint">{hint}</div>
@@ -624,82 +643,88 @@ function Tile({
 }
 
 /**
- * Confirmados frente a descartados con indicadores amigables.
+ * Qué tan bien está acertando el modelo.
+ *
+ * Antes eran dos tarjetas gemelas a lo ancho —semana e histórico— con la
+ * misma barra repetida. Repetir una forma para dos periodos obliga a leer el
+ * título de cada una para saber cuál es cuál, y ninguna de las dos destaca.
+ * Aquí el periodo vivo manda —anillo y desglose— y el acumulado queda debajo
+ * como referencia contra la que comparar, que es el papel que de verdad
+ * juega.
  */
-function Veredictos({
-  titulo,
-  bloque,
-  icono,
-}: {
-  titulo: string;
-  bloque: Bloque;
-  icono?: React.ReactNode;
-}) {
-  const decididos = bloque.confirmed + bloque.discarded;
-  const parteConfirmada =
-    decididos > 0 ? (bloque.confirmed / decididos) * 100 : 0;
+function CalidadPanel({ semana, total }: { semana: Bloque; total: Bloque }) {
+  const decididos = semana.confirmed + semana.discarded;
+  const pct = semana.accuracy !== null ? semana.accuracy * 100 : null;
 
   const resumen =
     decididos === 0
-      ? "Sin veredictos registrados en este periodo"
-      : `${bloque.confirmed} de ${decididos} resultaron ser incidentes reales`;
+      ? "Sin veredictos emitidos esta semana"
+      : `${semana.confirmed} de ${decididos} resultaron incidentes reales`;
+
+  const totalDecididos = total.confirmed + total.discarded;
+  const totalPct = total.accuracy !== null ? Math.round(total.accuracy * 100) : null;
 
   return (
-    <div className="card">
+    <aside className="card quality-card">
       <div className="card-header-bar">
         <h3>
-          {icono}
-          <span>{titulo}</span>
+          <IconTarget width={16} height={16} />
+          <span>Calidad de las alertas</span>
         </h3>
-        <span className="pill-metric">
-          Precisión: <strong>{porcentaje(bloque.accuracy)}</strong>
-        </span>
       </div>
 
-      <div className="verdict-row">
-        <strong>{porcentaje(bloque.accuracy)}</strong>
-        <span className="muted">{resumen}</span>
+      <div className="quality-ring-wrap">
+        <RingMeter value={pct} label="esta semana" accent="var(--brand)" />
+        <p className="quality-summary">{resumen}</p>
       </div>
 
-      <div
-        className="split-bar"
-        role="img"
-        aria-label={`${bloque.confirmed} confirmados y ${bloque.discarded} descartados`}
-      >
-        <span
-          className="split-fill confirmado"
-          style={{ width: `${parteConfirmada}%` }}
-          title={`Confirmados: ${Math.round(parteConfirmada)}%`}
-        />
-        <span
-          className="split-fill descartado"
-          style={{ width: `${100 - parteConfirmada}%` }}
-          title={`Descartados: ${Math.round(100 - parteConfirmada)}%`}
-        />
-      </div>
-
-      <ul className="legend">
+      {/* La leyenda lleva su número al lado: el color identifica, pero quien
+          no lo distinga tiene la cifra y la palabra igualmente. */}
+      <ul className="legend quality-legend">
         <li>
           <span className="verdict-dot confirmado" />
-          Confirmados <strong>{bloque.confirmed}</strong>
+          <span>Confirmados</span>
+          <strong>{semana.confirmed}</strong>
         </li>
         <li>
           <span className="verdict-dot descartado" />
-          Descartados <strong>{bloque.discarded}</strong>
+          <span>Descartados</span>
+          <strong>{semana.discarded}</strong>
         </li>
-        <li className="muted">
-          Archivados <strong>{bloque.archived}</strong>
+        <li>
+          <span className="verdict-dot archivado" />
+          <span>Archivados</span>
+          <strong>{semana.archived}</strong>
         </li>
       </ul>
 
-      <p className="muted small">
-        {duracion(bloque.active_seconds)} dedicados
-        {bloque.gap_count > 0
-          ? ` · ${bloque.gap_count} ${
-              bloque.gap_count === 1 ? "corte (" : "cortes ("
-            }${duracion(bloque.gap_seconds)})`
-          : " · conexión continua sin interrupciones"}
+      <div className="quality-total">
+        <div className="quality-total-head">
+          <span className="muted small">Histórico acumulado</span>
+          <strong>{porcentaje(total.accuracy)}</strong>
+        </div>
+        <div className="tile-meter-bar">
+          <div
+            className="tile-meter-fill"
+            style={{ width: `${totalPct ?? 0}%` }}
+          />
+        </div>
+        <p className="muted small">
+          {totalDecididos === 0
+            ? "Aún sin veredictos en el histórico"
+            : `${total.confirmed} de ${totalDecididos} reales · ${duracion(
+                total.active_seconds,
+              )} dedicados`}
+        </p>
+      </div>
+
+      <p className="muted small quality-foot">
+        {semana.gap_count > 0
+          ? `${semana.gap_count} ${
+              semana.gap_count === 1 ? "corte" : "cortes"
+            } de conexión esta semana (${duracion(semana.gap_seconds)})`
+          : "Conexión continua, sin interrupciones esta semana"}
       </p>
-    </div>
+    </aside>
   );
 }

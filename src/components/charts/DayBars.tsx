@@ -26,12 +26,17 @@ export function DayBars({
   data,
   format,
   icon,
+  accent,
 }: {
   title: string;
   hint: string;
   data: Punto[];
   format: (value: number) => string;
   icon?: React.ReactNode;
+  /** Tinta el CROMO de la tarjeta -filo, halo, icono-, nunca las barras.
+   *  Las dos series se distinguen por titulo e icono; ver la nota de
+   *  `.chart.accent-iris` en styles.css. */
+  accent?: "brand" | "iris";
 }) {
   const [sobre, setSobre] = useState<number | null>(null);
 
@@ -41,7 +46,7 @@ export function DayBars({
   const promedio = data.length > 0 ? Math.round(total / data.length) : 0;
 
   return (
-    <figure className="chart">
+    <figure className={accent === "iris" ? "chart accent-iris" : "chart"}>
       <figcaption className="chart-head">
         <div className="chart-title-group">
           {icon && <span className="chart-icon">{icon}</span>}
