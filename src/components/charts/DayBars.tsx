@@ -25,22 +25,42 @@ export function DayBars({
   hint,
   data,
   format,
+  icon,
 }: {
   title: string;
   hint: string;
   data: Punto[];
   format: (value: number) => string;
+  icon?: React.ReactNode;
 }) {
   const [sobre, setSobre] = useState<number | null>(null);
 
   const maximo = Math.max(...data.map((d) => d.value), 0);
   const indiceMaximo = maximo > 0 ? data.findIndex((d) => d.value === maximo) : -1;
+  const total = data.reduce((acc, d) => acc + d.value, 0);
+  const promedio = data.length > 0 ? Math.round(total / data.length) : 0;
 
   return (
     <figure className="chart">
-      <figcaption>
-        <strong>{title}</strong>
-        <span>{hint}</span>
+      <figcaption className="chart-head">
+        <div className="chart-title-group">
+          {icon && <span className="chart-icon">{icon}</span>}
+          <div>
+            <strong>{title}</strong>
+            <span className="chart-sub">{hint}</span>
+          </div>
+        </div>
+
+        {data.length > 0 && total > 0 && (
+          <div className="chart-summary-pills">
+            <span className="pill-metric">
+              Total: <strong>{format(total)}</strong>
+            </span>
+            <span className="pill-metric muted">
+              Promedio: <strong>{format(promedio)}</strong>/día
+            </span>
+          </div>
+        )}
       </figcaption>
 
       <div className="chart-plot" onMouseLeave={() => setSobre(null)}>
